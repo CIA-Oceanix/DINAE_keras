@@ -1,0 +1,203 @@
+from dinae import *
+
+def flagProcess0(dict_global_Params):
+
+    # import Global Parameters
+    for key,val in dict_global_Params.items():
+        exec("globals()['"+key+"']=val")
+
+    np.random.seed(100)
+ 
+    fileTr=[] ; fileTt=[]   
+    if 1*1:
+        thrMisData = 0.1
+        indT       = np.arange(0,11)#np.arange(0,5)#np.arange(0,5)
+        indN_Tr    = np.arange(0,200)#np.arange(0,800)#np.arange(0,600)#np.arange(0,35000)
+        indN_Tt    = np.arange(0,200)#np.arange(300,600)#np.arange(650,800)
+        SuffixOI   = '_OI_DT11Lx075Ly075Lt003'
+        
+        fileTr.append('/home/AI4OAC-VM8/DINAE/Data/DataNATL60/NATL60withMETOPMask/patchDataset_NATL60_Osmosis_METOPMask_ThrData10_20080601_20080630_Patch_128_512_011.nc')
+        fileTt.append('/home/AI4OAC-VM8/DINAE/Data/DataNATL60/NATL60withMETOPMask/patchDataset_NATL60_Osmosis_METOPMask_ThrData10_20080701_20080731_Patch_128_512_011.nc')
+
+    for ii in range(0,len(fileTr)):
+        print(".... Load SST dataset (training data): "+fileTr[ii])
+        nc_data     = Dataset(fileTr[ii],'r')
+    
+        print('.... # samples: %d '%nc_data.dimensions['N'].size)
+        if nc_data.dimensions['N'].size < indN_Tr[-1]:
+            x_train_ii    = nc_data['sst'][:,:,:,indT]
+            mask_train_ii = nc_data['mask'][:,:,:,indT]
+        else:
+            x_train_ii    = nc_data['sst'][indN_Tr,:,:,indT]
+            mask_train_ii = nc_data['mask'][indN_Tr,:,:,indT]
+        print('.... # loaded samples: %d '%x_train_ii.shape[0])
+            
+        # binary mask (remove non-binary labels due to re-gridding)
+        mask_train_ii     = (mask_train_ii > 0.5).astype('float')
+        
+        nc_data.close()
+    
+        if len(indT) == 1:
+            x_train_ii   = x_train_ii.reshape((x_train_ii.shape[0],x_train_ii.shape[1],x_train_ii.shape[2],1))
+            mask_train_ii = mask_train_ii.reshape((mask_train_ii.shape[0],mask_train_ii.shape[1],mask_train_ii.shape[2],1))
+                                   
+        # load OI data
+        if flagloadOIData == 1:
+            print(".... Load OI SST dataset (training data): "+fileTr[ii].replace('.nc',SuffixOI+'.nc'))
+            nc_data       = Dataset(fileTr[ii].replace('.nc',SuffixOI+'.nc'),'r')
+            x_train_OI_ii = nc_data['sstOI'][:,:,:]
+            
+
+        # remove patch if no SST data
+        ss            = np.sum( np.sum( np.sum( x_train_ii < -100 , axis = -1) , axis = -1 ) , axis = -1)
+        ind           = np.where( ss == 0 )
+        
+        x_train_ii    = x_train_ii[ind[0],:,:,:]
+        mask_train_ii = mask_train_ii[ind[0],:,:,:]
+        if flagloadOIData == 1:
+            x_train_OI_ii = x_train_OI_ii[ind[0],:,:]
+        
+        rateMissDataTr_ii = np.sum( np.sum( np.sum( mask_train_ii , axis = -1) , axis = -1 ) , axis = -1)
+        rateMissDataTr_ii /= mask_train_ii.shape[1]*mask_train_ii.shape[2]*mask_train_ii.shape[3]
+        if 1*1:
+            ind        = np.where( rateMissDataTr_ii  >= thrMisData )              
+            x_train_ii    = x_train_ii[ind[0],:,:,:]
+            mask_train_ii = mask_train_ii[ind[0],:,:,:]                      
+            if flagloadOIData == 1:
+                x_train_OI_ii = x_train_OI_ii[ind[0],:,:]
+            
+        print('.... # remaining samples: %d '%x_train_ii.shape[0])
+    
+        if ii == 0:
+            x_train    = np.copy(x_train_ii)
+            mask_train = np.copy(mask_train_ii)
+            if flagloadOIData == 1:
+                x_train_OI = np.copy(x_train_OI_ii)
+        else:
+            x_train    = np.concatenate((x_train,x_train_ii),axis=0)
+            mask_train = np.concatenate((mask_train,mask_train_ii),axis=0)
+            if flagloadOIData == 1:
+                x_train_OI = np.concatenate((x_train_OI,x_train_OI_ii),axis=0)
+                                            
+    rateMissDataTr = np.sum( np.sum( np.sum( mask_train , axis = -1) , axis = -1 ) , axis = -1)
+    rateMissDataTr /= mask_train.shape[1]*mask_train.shape[2]*mask_train.shape[3]
+        
+    if NSampleTr <  x_train.shape[0] :                   
+        ind_rand = np.random.permutation(x_train.shape[0])
+
+        x_train    = x_train[ind_rand[0:NSampleTr],:,:,:]
+        mask_train = mask_train[ind_rand[0:NSampleTr],:,:,:]
+        if flagloadOIData == 1:
+            x_train_OI = x_train_OI[ind_rand[0:NSampleTr],:,:]
+            
+    y_train    = np.ones((x_train.shape[0]))
+
+    if flagloadOIData:
+        print("....... # of training patches: %d/%d"%(x_train.shape[0],x_train_OI.shape[0]))
+    else:
+        print("....... # of training patches: %d"%(x_train.shape[0]))
+    
+    if 1*1: 
+
+        print(".... Load SST dataset (test data): "+fileTt[0])              
+        nc_data     = Dataset(fileTt[0],'r')
+        if nc_data.dimensions['N'].size < indN_Tt[-1]:
+            x_test    = nc_data['sst'][:,:,:,indT]
+            mask_test = nc_data['mask'][:,:,:,indT]
+        else:
+            x_test    = nc_data['sst'][indN_Tt,:,:,indT]
+            mask_test = nc_data['mask'][indN_Tt,:,:,indT]
+        mask_test     = (mask_test > 0.5).astype('float')
+        
+        nc_data.close()
+        if len(indT) == 1:
+            x_test    = x_test.reshape((x_test.shape[0],x_test.shape[1],x_test.shape[2],1))
+            mask_test = mask_test.reshape((mask_test.shape[0],mask_test.shape[1],mask_test.shape[2],1))
+
+        # load OI data
+        if flagloadOIData == 1:
+            print(".... Load OI SST dataset (test data): "+fileTt[0].replace('.nc',SuffixOI+'.nc'))
+            nc_data   = Dataset(fileTt[0].replace('.nc',SuffixOI+'.nc'),'r')
+            x_test_OI = nc_data['sstOI'][:,:,:]
+        
+         # remove patch if no SST data
+        ss        = np.sum( np.sum( np.sum( x_test < -100 , axis = -1) , axis = -1 ) , axis = -1)
+        ind       = np.where( ss == 0 )
+        x_test    = x_test[ind[0],:,:,:]
+        mask_test = mask_test[ind[0],:,:,:]
+        rateMissDataTt = np.sum( np.sum( np.sum( mask_test , axis = -1) , axis = -1 ) , axis = -1)
+        rateMissDataTt /= mask_test.shape[1]*mask_test.shape[2]*mask_test.shape[3]
+        
+        if flagloadOIData == 1:
+            x_test_OI    = x_test_OI[ind[0],:,:]
+                          
+        y_test    = np.ones((x_test.shape[0]))
+    else:
+        Nt        = int(np.floor(x_train.shape[0]*0.25))
+        x_test    = np.copy(x_train[0:Nt,:,:,:])
+        mask_test = np.copy(mask_train[0:Nt,:,:,:])
+        y_test    = np.ones((x_test.shape[0]))
+       
+        x_train    = x_train[Nt+1::,:,:,:]
+        mask_train = mask_train[Nt+1::,:,:,:]
+        y_train    = np.ones((x_train.shape[0]))
+                 
+    if flagloadOIData:
+        print("....... # of test patches: %d /%d"%(x_test.shape[0],x_test_OI.shape[0]))
+    else:
+        print("....... # of test patches: %d"%(x_test.shape[0]))
+
+          
+    print("... mean Tr = %f"%(np.mean(x_train)))
+    print("... mean Tt = %f"%(np.mean(x_test)))
+          
+    print(".... Training set shape %dx%dx%dx%d"%(x_train.shape[0],x_train.shape[1],x_train.shape[2],x_train.shape[3]))
+    print(".... Test set shape     %dx%dx%dx%d"%(x_test.shape[0],x_test.shape[1],x_test.shape[2],x_test.shape[3]))
+  
+    genFilename = 'modelNATL60_SSH_'+str('%03d'%x_train.shape[0])+str('_%03d'%x_train.shape[1])+str('_%03d'%x_train.shape[2])
+
+    print('....... Generic model filename: '+genFilename)
+    
+    meanTr     = np.mean(x_train)
+    x_train    = x_train - meanTr
+    x_test     = x_test  - meanTr
+  
+    if flagloadOIData:
+        x_train_OI    = x_train_OI - meanTr
+        x_test_OI     = x_test_OI  - meanTr
+
+    # scale wrt std
+    stdTr      = np.sqrt( np.mean( x_train**2 ) )
+    x_train    = x_train / stdTr
+    x_test     = x_test  / stdTr
+
+    print('... Mean and std of training data: %f  -- %f'%(meanTr,stdTr))
+
+    if flagloadOIData == 1:
+        x_train_OI    = x_train_OI / stdTr
+        x_test_OI     = x_test_OI  / stdTr
+
+    if flagDataWindowing == 1:
+        HannWindow = np.reshape(np.hanning(x_train.shape[2]),(x_train.shape[1],1)) * np.reshape(np.hanning(x_train.shape[1]),(x_train.shape[2],1)).transpose() 
+
+        x_train = np.moveaxis(np.moveaxis(x_train,3,1) * np.tile(HannWindow,(x_train.shape[0],x_train.shape[3],1,1)),1,3)
+        x_test  = np.moveaxis(np.moveaxis(x_test,3,1) * np.tile(HannWindow,(x_test.shape[0],x_test.shape[3],1,1)),1,3)
+        print(".... Training set shape %dx%dx%dx%d"%(x_train.shape[0],x_train.shape[1],x_train.shape[2],x_train.shape[3]))
+        print(".... Test set shape     %dx%dx%dx%d"%(x_test.shape[0],x_test.shape[1],x_test.shape[2],x_test.shape[3]))
+
+    elif flagDataWindowing == 2:
+        EdgeWidth  = 4
+        EdgeWindow = np.zeros((x_train.shape[1],x_train.shape[2]))
+        EdgeWindow[EdgeWidth:x_train.shape[1]-EdgeWidth,EdgeWidth:x_train.shape[2]-EdgeWidth] = 1
+      
+        x_train = np.moveaxis(np.moveaxis(x_train,3,1) * np.tile(EdgeWindow,(x_train.shape[0],x_train.shape[3],1,1)),1,3)
+        x_test  = np.moveaxis(np.moveaxis(x_test,3,1) * np.tile(EdgeWindow,(x_test.shape[0],x_test.shape[3],1,1)),1,3)
+
+        mask_train = np.moveaxis(np.moveaxis(mask_train,3,1) * np.tile(EdgeWindow,(mask_train.shape[0],x_train.shape[3],1,1)),1,3)
+        mask_test  = np.moveaxis(np.moveaxis(mask_test,3,1) * np.tile(EdgeWindow,(mask_test.shape[0],x_test.shape[3],1,1)),1,3)
+        print(".... Training set shape %dx%dx%dx%d"%(x_train.shape[0],x_train.shape[1],x_train.shape[2],x_train.shape[3]))
+        print(".... Test set shape     %dx%dx%dx%d"%(x_test.shape[0],x_test.shape[1],x_test.shape[2],x_test.shape[3]))
+    
+    print("... (after normalization) mean Tr = %f"%(np.mean(x_train)))
+    print("... (after normalization) mean Tt = %f"%(np.mean(x_test)))
+    return genFilename, x_train,y_train, mask_train, meanTr, stdTr, x_test, y_test, mask_test
