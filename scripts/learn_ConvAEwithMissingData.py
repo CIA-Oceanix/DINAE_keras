@@ -17,19 +17,19 @@ if __name__ == '__main__':
     flagDisplay   		= 0
     flagSaveModel 		= 1
     flagTrOuputWOMissingData 	= 1
-    flagloadOIData 		= 0
+    flagloadOIData 		= 0#1
     flagDataset 		= 2
-    Wsquare     		= 4#0 # half-width of holes
+    Wsquare     		= 4  # half-width of holes
     Nsquare     		= 3  # number of holes
-    DimAE       		= 40#20 # Dimension of the latent space
-    flagAEType  		= 7#7#
-    flagOptimMethod 		= 0 # 0 DINAE : iterated projections, 1 : Gradient descent  
-    flagGradModel   		= 0 # 0: F(Grad,Mask), 1: F==(Grad,Grad(t-1),Mask), 2: LSTM(Grad,Mask)
+    DimAE       		= 40 #20 # Dimension of the latent space
+    flagAEType  		= 7
+    flagOptimMethod 		= 0  # 0 DINAE : iterated projections, 1 : Gradient descent  
+    flagGradModel   		= 0  # 0: F(Grad,Mask), 1: F==(Grad,Grad(t-1),Mask), 2: LSTM(Grad,Mask)
     sigNoise        		= 1e-1
     flagUseMaskinEncoder 	= 0
     stdMask              	= 0.
     alpha                	= np.array([1.,0.,0.])
-    flagDataWindowing 		= 2 # 2 for SST case-study
+    flagDataWindowing 		= 2  # 2 for SSH case-study
     dropout           		= 0.0
     wl2               		= 0.0000
     batch_size        		= 4

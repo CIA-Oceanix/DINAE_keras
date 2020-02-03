@@ -378,25 +378,13 @@ def flagProcess4(dict_global_Params,genFilename,x_train,x_train_missing,mask_tra
         val_split      = 0.1
     
     flagLoadModelAE = 0
-    fileAEModelInit = './MNIST/mnist_DINConvAE_AE02N03W04_Nproj10_Encoder_iter015.mod'#'./MNIST/mnist_DINConvAE_AE02N30W02_Nproj05_Encoder_iter006.mod'#'./MNIST/mnist_DINConvAE_AE02N30W02_Nproj10_Encoder_iter011.mod'
+    # Here, specify a preloaded AE model
+    fileAEModelInit = dirSAVE+'???.mod'
     
-    fileAEModelInit = './MNIST/mnist_DINConvAE_AETRwoMissingData02N06W04_Nproj10_Encoder_iter015.mod'
-    fileAEModelInit = './MNIST/mnist_DINConvAE_AE02N30W02_Nproj10_Encoder_iter015.mod'
-    fileAEModelInit = './MNIST/mnist_DINConvAE_AETRwoMissingData02N30W02_Nproj10_Encoder_iter015.mod'
-    #fileAEModelInit = './MNIST/fashion_mnist_DINConvAE_AE02N20W02_Nproj10_Encoder_iter015.mod'
-    #fileAEModelInit = './MNIST/mnist_DINConvAE_GradAE02_00_D20N06W04_Nproj01_Grad15_Encoder_iter008.mod'
-    #fileAEModelInit = './MNIST/mnist_DINConvAE_GradAE02_00D20N06W04_Nproj01_Grad10_Encoder_iter005.mod'
-    #fileAEModelInit = './MNIST/mnist_DINConvAE_AE03N30W02_Nproj15_Encoder_iter018.mod'
-    fileAEModelInit = './MNIST/mnist_DINConvAE_GradAETRwoMissingData02_00D20N30W02_Nproj05_Grad05_Encoder_iter005.mod'
-    
-    fileAEModelInit = './MNIST/mnist_DINConvAE_v3__Alpha102GradAE02_00_D20N06W04_Nproj00_Grad10_Encoder_iter012.mod'
-    #fileAEModelInit = './MNIST/mnist_DINConvAE_v3__Alpha100_AE02D20N03W04_Nproj10_Encoder_iter014.mod'
-    
-    iterInit        = 0
+    iterInit = 0
     if flagLoadModelAE > 0 :
-        iterInit        = 13
-    IterTrainAE     = 0
-
+        iterInit = 13
+    IterTrainAE = 0
     IterUpdateInit = 10000
     
     ## initialization

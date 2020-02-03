@@ -23,7 +23,7 @@ def flagProcess2_7(dict_global_Params,genFilename,x_train,mask_train,x_test,mask
     for key,val in dict_global_Params.items():
         exec("globals()['"+key+"']=val")
 
-    WFilter       = 11#
+    WFilter       = 30#
     NbResUnit     = 10#3#
     dW    = 0
     flagdownScale = 1 #: 0: only HR scale, 1 : only LR, 2 : HR + LR , 2 : MR, HR + LR annd LR,
