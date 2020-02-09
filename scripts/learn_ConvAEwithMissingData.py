@@ -58,7 +58,7 @@ if __name__ == '__main__':
     #3) *** Define AE architecture ***
     genFilename, encoder, decoder, model_AE, DIMCAE = flagProcess2(globParams,genFilename,x_train,mask_train,x_test,mask_test)
     #4) *** Define classifier architecture for performance evaluation ***
-    classifier = flagProcess3(globParams,y_train)
+    #classifier = flagProcess3(globParams,y_train)
     #5) *** Train ConvAE ***      
     flagProcess4(globParams,genFilename,x_train,x_train_missing,mask_train,meanTr,stdTr,\
                  x_test,x_test_missing,mask_test,lday_test,encoder,decoder,model_AE,DIMCAE)

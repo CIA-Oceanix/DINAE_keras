@@ -1,11 +1,313 @@
-from dinae import *
-from .tools import *
-from .graphics import *
-from .mods_flagProcess4.eval_Performance      import eval_AEPerformance
-from .mods_flagProcess4.eval_Performance      import eval_InterpPerformance
-from .mods_flagProcess4.def_DINConvAE         import define_DINConvAE
-from .mods_flagProcess4.def_GradModel         import define_GradModel
-from .mods_flagProcess4.def_GradDINConvAE     import define_GradDINConvAE
+from diane import *
+
+# functions for the evaluation of interpolation and auto-encoding performance
+def eval_AEPerformance(x_train,rec_AE_Tr,x_test,rec_AE_Tt):
+
+    mse_AE_Tr        = np.mean( (rec_AE_Tr - x_train)**2 )
+    var_Tr           = np.mean( (x_train-np.mean(x_train,axis=0)) ** 2 )
+    exp_var_AE_Tr    = 1. - mse_AE_Tr / var_Tr
+    
+    mse_AE_Tt        = np.mean( (rec_AE_Tt - x_test)**2 )
+    var_Tt           = np.mean( (x_test-np.mean(x_train,axis=0))** 2 )
+    exp_var_AE_Tt    = 1. - mse_AE_Tt / var_Tt
+            
+    return exp_var_AE_Tr,exp_var_AE_Tt
+
+def eval_InterpPerformance(mask_train,x_train,x_train_missing,x_train_pred,
+                           mask_test,x_test,x_test_missing,x_test_pred):
+    mse_train      = np.zeros((2))
+    mse_train[0]   = np.sum( mask_train * (x_train_pred - x_train_missing)**2 ) / np.sum( mask_train )
+    mse_train[1]   = np.mean( (x_train_pred - x_train)**2 )
+    exp_var_train  = 1. - mse_train #/ var_Tr
+            
+    mse_test        = np.zeros((2))
+    mse_test[0]     = np.sum( mask_test * (x_test_pred - x_test_missing)**2 ) / np.sum( mask_test )
+    mse_test[1]     = np.mean( (x_test_pred - x_test)**2 ) 
+    exp_var_test = 1. - mse_test #/ var_Tt
+
+    mse_train_interp        = np.sum( (1.-mask_train) * (x_train_pred - x_train)**2 ) / np.sum( 1. - mask_train )
+    exp_var_train_interp    = 1. - mse_train_interp 
+    
+    mse_test_interp        = np.sum( (1.-mask_test) * (x_test_pred - x_test)**2 ) / np.sum( 1. - mask_test )
+    exp_var_test_interp    = 1. - mse_test_interp
+            
+    return mse_train,exp_var_train,mse_test,exp_var_test,mse_train_interp,exp_var_train_interp,mse_test_interp,exp_var_test_interp
+
+def define_DINConvAE(NiterProjection,model_AE,shape,alpha,flagDisplay=0):
+
+    # encoder-decoder with masked data
+    x_input         = keras.layers.Input((shape[1],shape[2],shape[3]))
+    mask            = keras.layers.Input((shape[1],shape[2],shape[3]))
+    
+    x     = keras.layers.Lambda(lambda x:1.*x)(x_input)
+    mask_ = keras.layers.Lambda(lambda x:1.-x)(mask)
+
+    # Iterations of fixed-point projection
+    for kk in range(0,NiterProjection):
+        x_proj   = model_AE([x,mask])
+        x_proj   = keras.layers.Multiply()([x_proj,mask_])
+        x        = keras.layers.Multiply()([x,mask])
+        x        = keras.layers.Add()([x,x_proj])
+
+    if flag_MultiScaleAEModel == 1:
+        x_proj,x_projLR = model_AE_MR([x,mask])
+        global_model_FP    = keras.models.Model([x_input,mask],[x_proj])
+        global_model_FP_MR = keras.models.Model([x_input,mask],[x_proj,x_projLR])
+    else:
+        x_proj = model_AE([x,mask])
+        global_model_FP    = keras.models.Model([x_input,mask],[x_proj])
+
+    x_input         = keras.layers.Input((shape[1],shape[2],shape[3]))
+    mask            = keras.layers.Input((shape[1],shape[2],shape[3]))
+
+    # randomly sample an additionnal missing data mask
+    # additive noise + spatial smoothing
+    if flagUseMaskinEncoder == 1:
+        WAvFilter     = 3
+        NIterAvFilter = 3
+        thrNoise      = 1.5 * stdMask + 1e-7
+        maskg   = keras.layers.GaussianNoise(stdMask)(mask)
+      
+        avFilter       = 1./(WAvFilter**3)*np.ones((WAvFilter,WAvFilter,WAvFilter,1,1))
+        spatialAvLayer = keras.layers.Conv3D(1,(WAvFilter,WAvFilter,WAvFilter),weights=[avFilter],padding='same',activation='linear',use_bias=False,name='SpatialAverage')
+        spatialAvLayer.trainable = False
+        maskg = keras.layers.Lambda(lambda x: K.permute_dimensions(x,(0,3,1,2)))(maskg) 
+ 
+        maskg  = keras.layers.Reshape((shape[3],shape[1],shape[2],1))(maskg)
+        for nn in range(0,NIterAvFilter):
+            maskg  = spatialAvLayer(maskg) 
+        maskg = keras.layers.Lambda(lambda x: K.permute_dimensions(x,(0,2,3,1,4)))(maskg) 
+        maskg = keras.layers.Reshape((shape[1],shape[2],shape[3]))(maskg)
+        maskg = keras.layers.Lambda(lambda x: thresholding(x,thrNoise))(maskg)    
+     
+        maskg  = keras.layers.Multiply()([mask,maskg])
+        maskg  = keras.layers.Subtract()([mask,maskg])       
+    else:
+        maskg = keras.layers.Lambda(lambda x: 1.*x)(mask)
+      
+    if flag_MultiScaleAEModel == 0:
+        x_proj = global_model_FP([x_input,maskg])
+    else:
+        x_proj,x_projLR = global_model_FP_MR([x_input,maskg])
+  
+    # AE error with x_proj
+    err1   = keras.layers.Subtract()([x_proj,x_input])
+    err1   = keras.layers.Multiply()([err1,mask])
+    err1   = keras.layers.Multiply()([err1,err1])
+    err1   = keras.layers.Reshape((shape[1],shape[2],shape[3],1))(err1)
+    err1   = keras.layers.GlobalAveragePooling3D()(err1)
+    err1   = keras.layers.Reshape((1,))(err1)
+    err1   = keras.layers.Lambda(lambda x:alpha[0]*x)(err1)
+  
+    # AE error with x_proj
+    if flag_MultiScaleAEModel == 1:
+        err1LR   = keras.layers.Subtract()([x_projLR,x_input])
+        err1LR   = keras.layers.Multiply()([err1LR,mask])
+        err1LR   = keras.layers.Multiply()([err1LR,err1LR])
+        err1LR   = keras.layers.Reshape((shape[1],shape[2],shape[3],1))(err1LR)
+        err1LR   = keras.layers.GlobalAveragePooling3D()(err1LR)
+        err1LR   = keras.layers.Reshape((1,))(err1LR)
+        err1LR   = keras.layers.Lambda(lambda x:alpha[0]*x)(err1LR)
+        err1     = keras.layers.Add()([err1,err1LR])
+
+    # compute error (x_proj-x_input)**2 with full-1 mask
+    x_proj2 = model_AE([x_proj,keras.layers.Lambda(lambda x:1.-0.*x)(mask)])
+    err2    = keras.layers.Subtract()([x_proj,x_proj2])
+    err2    = keras.layers.Multiply()([err2,err2])
+    err2   = keras.layers.Reshape((shape[1],shape[2],shape[3],1))(err2)
+    err2   = keras.layers.GlobalAveragePooling3D()(err2)
+    err2   = keras.layers.Reshape((1,))(err2)
+    err2   = keras.layers.Lambda(lambda x:alpha[1]*x)(err2)
+
+    # compute error (x_proj-x_input)**2 with full-1 mask
+    x_proj3 = model_AE([x_proj,keras.layers.Lambda(lambda x:0.*x)(mask)])
+    err3    = keras.layers.Subtract()([x_proj3,x_proj])
+    err3    = keras.layers.Multiply()([err3,err3])
+    err3    = keras.layers.Reshape((shape[1],shape[2],shape[3],1))(err3)
+    err3    = keras.layers.GlobalAveragePooling3D()(err3)
+    err3    = keras.layers.Reshape((1,))(err3)
+    err3    = keras.layers.Lambda(lambda x:alpha[2]*x)(err3)
+
+    err    = keras.layers.Add()([err1,err2])
+    err    = keras.layers.Add()([err,err3])
+    global_model_FP_Masked  = keras.models.Model([x_input,mask],err)
+
+    if flagDisplay == 1:
+        global_model_FP.summary()
+        global_model_FP_Masked.summary()
+  
+    return global_model_FP,global_model_FP_Masked
+
+def define_GradModel(model_AE,shape,flagGradModel=0,flagDisplay=1):
+    x_input         = keras.layers.Input((shape[1],shape[2],2*shape[3]))
+  
+    x = keras.layers.Conv2D(10,(3,3),activation='relu', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x_input)
+    for nn in range(0,10):
+        x = keras.layers.Conv2D(10,(3,3),activation='relu', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x)
+  
+    x = keras.layers.Conv2D(shape[3],(3,3),activation='relu', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x)
+    gradMaskModel  = keras.models.Model([x_input],[x])
+    
+    # conv model for gradient      
+    if flagGradModel == 0:
+        print("...... Initialize Gradient Model: ResNet")
+        x_input  = keras.layers.Input((shape[1],shape[2],2*shape[3]))
+        x        = keras.layers.Conv2D(10,(3,3),activation='relu', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x_input)
+        x        = keras.layers.Conv2D(5,(3,3),activation='linear', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x)
+        for nn in range(0,10):
+            dx = keras.layers.Conv2D(10,(3,3),activation='relu', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x)
+            dx = keras.layers.Conv2D(5,(3,3),activation='linear', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(dx)
+            x  = keras.layers.Add()([x,dx])
+        x = keras.layers.Conv2D(shape[3],(3,3),activation='linear', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x)
+        gradModel  = keras.models.Model([x_input],[x])
+
+    elif flagGradModel == 1:
+        print("...... Initialize Gradient Model: ResNet with one-step memory")
+        x_input  = keras.layers.Input((shape[1],shape[2],shape[3]*2))
+        x        = keras.layers.Conv2D(10,(3,3),activation='relu', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x_input)
+        x        = keras.layers.Conv2D(5,(3,3),activation='linear', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x)
+        for nn in range(0,10):
+            dx = keras.layers.Conv2D(10,(3,3),activation='relu', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x)
+            dx = keras.layers.Conv2D(5,(3,3),activation='linear', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(dx)
+            x  = keras.layers.Add()([x,dx])
+        x = keras.layers.Conv2D(shape[3],(3,3),activation='linear', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x)
+        gradModel  = keras.models.Model([x_input],[x])
+      
+    elif flagGradModel == 2:
+        print("...... Initialize Gradient Model: LSTM")
+        x_input  = keras.layers.Input((shape[1],shape[2],shape[3]*2))
+
+        gx_lstm  = keras.layers.ConvLSTM2D(10, kernel_size=(1,3), padding='same', use_bias=False, activation='relu')(keras.layers.Reshape((1,shape[1],shape[2],2))(x_input))#,return_state=True)#,input_shape=(1, para_Model.NbHS))
+        gx_lstm  = keras.layers.Conv2D(shape[3],(1,1),activation='linear', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(gx_lstm)
+      
+        gradModel  = keras.models.Model([x_input],[gx_lstm])
+ 
+    if flagDisplay == 1:
+        gradMaskModel.summary()
+        gradModel.summary()
+    return gradModel,gradMaskModel
+  
+def define_GradDINConvAE(NiterProjection,NiterGrad,model_AE,shape,gradModel,gradMaskModel,flagGradModel=0,flagDisplay=0):
+
+    # encoder-decoder with masked data
+    x_input         = keras.layers.Input((shape[1],shape[2],shape[3]))
+    mask            = keras.layers.Input((shape[1],shape[2],shape[3]))
+
+    x     = keras.layers.Lambda(lambda x:1.*x)(x_input)
+    mask_ = keras.layers.Lambda(lambda x:1.-x)(mask)
+
+    # fixed-point projections as initialization
+    for kk in range(0,NiterProjection):
+        x_proj   = model_AE([x,mask])
+        x_proj   = keras.layers.Multiply()([x_proj,mask_])
+        x        = keras.layers.Multiply()([x,mask])
+        x        = keras.layers.Add()([x,x_proj])
+
+    # gradient descent
+    for kk in range(0,NiterGrad):
+        x_proj   = model_AE([x,mask])
+        dx       = keras.layers.Subtract()([x,x_proj])
+      
+        # grad mask
+        dmask    = keras.layers.Concatenate(axis=-1)([dx,mask_])
+        dmask    = gradMaskModel(dmask)
+      
+        # grad update
+        if flagGradModel == 0:
+            gx    = keras.layers.Concatenate(axis=-1)([dx,mask_])
+            gx    = gradModel(gx)
+        elif flagGradModel == 1:
+            if kk == 0:
+                gx = keras.layers.Lambda(lambda x:0.*x)(dx)              
+            gx    = keras.layers.Concatenate(axis=-1)([mask_,gx])                  
+            gx    = keras.layers.Concatenate(axis=-1)([dx,gx])
+
+            gx    = gradModel(gx)
+        elif flagGradModel == 2:
+            gx    = keras.layers.Concatenate(axis=-1)([dx,mask_])
+            gx    = gradModel(gx)
+          
+        dx    = keras.layers.Multiply()([gx,dmask])
+        xnew  = keras.layers.Add()([x,dx])
+        xnew  = keras.layers.Multiply()([xnew,mask_])
+      
+        # update with masking
+        x        = keras.layers.Multiply()([x,mask])
+        x        = keras.layers.Add()([x,xnew])
+              
+    x_proj = model_AE([x,mask])
+    global_model_Grad  = keras.models.Model([x_input,mask],[x_proj])
+
+    x_input         = keras.layers.Input((shape[1],shape[2],shape[3]))
+    mask            = keras.layers.Input((shape[1],shape[2],shape[3]))
+
+    # randomly sample an additionnal missing data mask
+    # additive noise + spatial smoothing
+    if flagUseMaskinEncoder == 1:
+        WAvFilter     = 3
+        NIterAvFilter = 3
+        thrNoise      = 1.5 * stdMask + 1e-7
+        maskg   = keras.layers.GaussianNoise(stdMask)(mask)
+      
+        avFilter       = 1./(WAvFilter**3)*np.ones((WAvFilter,WAvFilter,WAvFilter,1,1))
+        spatialAvLayer = keras.layers.Conv3D(1,(WAvFilter,WAvFilter,WAvFilter),weights=[avFilter],padding='same',activation='linear',use_bias=False,name='SpatialAverage')
+        spatialAvLayer.trainable = False
+        maskg = keras.layers.Lambda(lambda x: K.permute_dimensions(x,(0,3,1,2)))(maskg) 
+ 
+        maskg  = keras.layers.Reshape((shape[3],shape[1],shape[2],1))(maskg)
+        for nn in range(0,NIterAvFilter):
+            maskg  = spatialAvLayer(maskg) 
+        maskg = keras.layers.Lambda(lambda x: K.permute_dimensions(x,(0,2,3,1,4)))(maskg) 
+        maskg = keras.layers.Reshape((shape[1],shape[2],shape[3]))(maskg)
+          
+ 
+        maskg = keras.layers.Lambda(lambda x: thresholding(x,thrNoise))(maskg)    
+     
+        maskg  = keras.layers.Multiply()([mask,maskg])
+        maskg  = keras.layers.Subtract()([mask,maskg])       
+    else:
+        maskg = keras.layers.Lambda(lambda x: 1.*x)(mask)
+
+    x_proj = global_model_Grad([x_input,maskg])
+  
+    # AE error with x_proj
+    err1   = keras.layers.Subtract()([x_proj,x_input])
+    err1   = keras.layers.Multiply()([err1,mask])
+    err1   = keras.layers.Multiply()([err1,err1])
+    err1   = keras.layers.Reshape((shape[1],shape[2],shape[3],1))(err1)
+    err1   = keras.layers.GlobalAveragePooling3D()(err1)
+    err1   = keras.layers.Reshape((1,))(err1)
+    err1   = keras.layers.Lambda(lambda x:alpha[0]*x)(err1)
+  
+    # compute error (x_proj-x_input)**2 with full-1 mask
+    x_proj2 = model_AE([x_proj,keras.layers.Lambda(lambda x:1.-0.*x)(mask)])
+    err2    = keras.layers.Subtract()([x_proj,x_proj2])
+    err2    = keras.layers.Multiply()([err2,err2])
+    err2   = keras.layers.Reshape((shape[1],shape[2],shape[3],1))(err2)
+    err2   = keras.layers.GlobalAveragePooling3D()(err2)
+    err2   = keras.layers.Reshape((1,))(err2)
+    err2   = keras.layers.Lambda(lambda x:alpha[1]*x)(err2)
+
+    # compute error (x_proj-x_input)**2 with full-1 mask
+    x_proj3 = model_AE([x_proj,keras.layers.Lambda(lambda x:0.*x)(mask)])
+    err3    = keras.layers.Subtract()([x_proj3,x_proj])
+    err3    = keras.layers.Multiply()([err3,err3])
+    err3    = keras.layers.Reshape((shape[1],shape[2],shape[3],1))(err3)
+    err3    = keras.layers.GlobalAveragePooling3D()(err3)
+    err3    = keras.layers.Reshape((1,))(err3)
+    err3    = keras.layers.Lambda(lambda x:alpha[2]*x)(err3)
+
+    err    = keras.layers.Add()([err1,err2])
+    err    = keras.layers.Add()([err,err3])
+    global_model_Grad_Masked  = keras.models.Model([x_input,mask],err)
+
+    if flagDisplay == 1:
+        gradModel.summary()
+        gradMaskModel.summary()
+        global_model_Grad.summary()
+        global_model_Grad_Masked.summary()
+  
+    return global_model_Grad,global_model_Grad_Masked
 
 def flagProcess4(dict_global_Params,genFilename,x_train,x_train_missing,mask_train,meanTr,stdTr,x_test,x_test_missing,mask_test,lday_test,encoder,decoder,model_AE,DimCAE):
 
@@ -81,8 +383,7 @@ def flagProcess4(dict_global_Params,genFilename,x_train,x_train_missing,mask_tra
             comptUpdate = 3
             NBProjCurrent = NbProjection[comptUpdate-1]
             print("..... Initialize number of projections in DINCOnvAE model # %d"%(NbProjection[comptUpdate-1]))
-            global_model_FP,global_model_FP_Masked = define_DINConvAE(NbProjection[comptUpdate-1],model_AE,x_train.shape,alpha,\
-                                                                      flag_MultiScaleAEModel,flagUseMaskinEncoder)
+            global_model_FP,global_model_FP_Masked = define_DINConvAE(NbProjection[comptUpdate-1],model_AE,x_train.shape,alpha)
             if flagTrOuputWOMissingData == 1:
                 global_model_FP.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate-1]))
             else:
@@ -119,8 +420,7 @@ def flagProcess4(dict_global_Params,genFilename,x_train,x_train_missing,mask_tra
                 # update DINConvAE model
                 NBProjCurrent = NbProjection[comptUpdate]
                 print("..... Update/initialize number of projections in DINCOnvAE model # %d"%(NbProjection[comptUpdate]))
-                global_model_FP,global_model_FP_Masked = define_DINConvAE(NbProjection[comptUpdate],model_AE,x_train.shape,alpha,\
-                                                                          flag_MultiScaleAEModel,flagUseMaskinEncoder)
+                global_model_FP,global_model_FP_Masked = define_DINConvAE(NbProjection[comptUpdate],model_AE,x_train.shape,alpha)
                 if flagTrOuputWOMissingData == 1:
                     global_model_FP.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
                 else:

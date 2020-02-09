@@ -25,3 +25,10 @@ def Gradient(img, order):
         return sobely
     else:
         return sobel_norm
+
+def thresholding(x,thr):
+    greater = K.greater_equal(x,thr) #will return boolean values
+    greater = K.cast(greater, dtype=K.floatx()) #will convert bool to 0 and 1    
+    return greater
+
+
