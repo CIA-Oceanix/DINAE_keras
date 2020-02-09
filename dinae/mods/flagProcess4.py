@@ -40,17 +40,6 @@ def eval_InterpPerformance(mask_train,x_train,x_train_missing,x_train_pred,
             
     return mse_train,exp_var_train,mse_test,exp_var_test,mse_train_interp,exp_var_train_interp,mse_test_interp,exp_var_test_interp
 
-def defineClassifier(DimAE,num_classes):
-
-    ## Learning a classifier
-    
-    classifier = keras.Sequential()
-    classifier.add(keras.layers.Dense(32,activation='relu', input_shape=(DimAE,)))
-    classifier.add(keras.layers.Dense(64,activation='relu'))
-    classifier.add(keras.layers.Dense(num_classes, activation='softmax'))
-    
-    return classifier
-
 def define_DINConvAE(NiterProjection,model_AE,shape,alpha,flagDisplay=0):
 
     # encoder-decoder with masked data

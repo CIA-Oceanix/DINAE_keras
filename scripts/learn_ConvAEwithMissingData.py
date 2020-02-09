@@ -22,7 +22,7 @@ if __name__ == '__main__':
     Wsquare     		= 4  # half-width of holes
     Nsquare     		= 3  # number of holes
     DimAE       		= 40 #20 # Dimension of the latent space
-    flagAEType  		= 7
+    flagAEType  		= 6
     flagOptimMethod 		= 0  # 0 DINAE : iterated projections, 1 : Gradient descent  
     flagGradModel   		= 0  # 0: F(Grad,Mask), 1: F==(Grad,Grad(t-1),Mask), 2: LSTM(Grad,Mask)
     sigNoise        		= 1e-1
