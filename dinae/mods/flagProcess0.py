@@ -21,6 +21,8 @@ def flagProcess0(dict_global_Params):
     indN_Tt = np.concatenate([np.arange(60,80),np.arange(140,160),\
                              np.arange(220,240),np.arange(300,320)])
     indN_Tr = np.delete(range(365),indN_Tt)
+    indN_Tr = np.arange(0,315)
+    indN_Tt = np.arange(315,365)
     lday_test=[ datetime.strftime(datetime.strptime("2012-10-01",'%Y-%m-%d')\
                           + timedelta(days=np.float64(i)),"%Y-%m-%d") for i in indN_Tt ]
 

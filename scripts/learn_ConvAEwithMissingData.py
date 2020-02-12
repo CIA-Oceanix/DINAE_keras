@@ -14,8 +14,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # list of global parameters (comments to add)
-    flagDisplay   		= 0
-    flagSaveModel 		= 1
     flagTrOuputWOMissingData 	= 1
     flagloadOIData 		= 0#1
     flagDataset 		= 2
@@ -28,7 +26,6 @@ if __name__ == '__main__':
     sigNoise        		= 1e-1
     flagUseMaskinEncoder 	= 0
     stdMask              	= 0.
-    alpha                	= np.array([1.,0.,0.])
     flagDataWindowing 		= 2  # 2 for SSH case-study
     dropout           		= 0.0
     wl2               		= 0.0000
@@ -41,11 +38,11 @@ if __name__ == '__main__':
     # push all global parameters in a list
     def createGlobParams(params):
         return dict(((k, eval(k)) for k in params))
-    list_globParams=['flagDisplay','flagSaveModel','flagTrOuputWOMissingData',\
+    list_globParams=['flagTrOuputWOMissingData',\
     'flagloadOIData', 'flagDataset', 'Wsquare',\
     'Nsquare','DimAE','flagAEType',\
     'flagOptimMethod','flagGradModel','sigNoise',\
-    'flagUseMaskinEncoder','stdMask','alpha',\
+    'flagUseMaskinEncoder','stdMask',\
     'flagDataWindowing','dropout','wl2','batch_size',\
     'NbEpoc','Niter','NSampleTr',\
     'flag_MultiScaleAEModel','dirSAVE']
@@ -53,13 +50,21 @@ if __name__ == '__main__':
 
     #1) *** Read the data ***
     genFilename, x_train, y_train, mask_train, meanTr, stdTr, x_test, y_test, mask_test, lday_test = flagProcess0(globParams)
+
     #2) *** Generate missing data ***
     x_train_missing, x_test_missing = flagProcess1(globParams,x_train,mask_train,x_test,mask_test)
+
     #3) *** Define AE architecture ***
     genFilename, encoder, decoder, model_AE, DIMCAE = flagProcess2(globParams,genFilename,x_train,mask_train,x_test,mask_test)
+
     #4) *** Define classifier architecture for performance evaluation ***
     #classifier = flagProcess3(globParams,y_train)
+
     #5) *** Train ConvAE ***      
-    flagProcess4(globParams,genFilename,x_train,x_train_missing,mask_train,meanTr,stdTr,\
+    if flagOptimMethod==0:
+        flagProcess4_Optim0(globParams,genFilename,x_train,x_train_missing,mask_train,meanTr,stdTr,\
+                 x_test,x_test_missing,mask_test,lday_test,encoder,decoder,model_AE,DIMCAE)
+    if flagOptimMethod==1:
+        flagProcess4_Optim1(globParams,genFilename,x_train,x_train_missing,mask_train,meanTr,stdTr,\
                  x_test,x_test_missing,mask_test,lday_test,encoder,decoder,model_AE,DIMCAE)
 

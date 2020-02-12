@@ -83,7 +83,8 @@ from .mods.flagProcess0 import *
 from .mods.flagProcess1 import *
 from .mods.flagProcess2 import *
 from .mods.flagProcess3 import *
-from .mods.flagProcess4 import *
+from .mods.flagProcess4_Optim0 import *
+from .mods.flagProcess4_Optim1 import *
 from .mods.tools import *
 from .mods.graphics import *
 

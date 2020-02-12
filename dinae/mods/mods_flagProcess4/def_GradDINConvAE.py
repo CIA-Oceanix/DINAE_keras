@@ -1,5 +1,15 @@
 from dinae import *
-  
+ 
+def error(x1,x2,mask,shape,alpha):
+    err   = keras.layers.Subtract()([x1,x2])
+    err   = keras.layers.Multiply()([err,mask])
+    err   = keras.layers.Multiply()([err,err])
+    err   = keras.layers.Reshape((shape[1],shape[2],shape[3],1))(err)
+    err   = keras.layers.GlobalAveragePooling3D()(err)
+    err   = keras.layers.Reshape((1,))(err)
+    err   = keras.layers.Lambda(lambda x: alpha*x)(err)
+    return err 
+
 def define_GradDINConvAE(NiterProjection,NiterGrad,model_AE,shape,gradModel,gradMaskModel,flagGradModel=0,flagDisplay=0):
 
     # encoder-decoder with masked data
@@ -84,41 +94,23 @@ def define_GradDINConvAE(NiterProjection,NiterGrad,model_AE,shape,gradModel,grad
     x_proj = global_model_Grad([x_input,maskg])
   
     # AE error with x_proj
-    err1   = keras.layers.Subtract()([x_proj,x_input])
-    err1   = keras.layers.Multiply()([err1,mask])
-    err1   = keras.layers.Multiply()([err1,err1])
-    err1   = keras.layers.Reshape((shape[1],shape[2],shape[3],1))(err1)
-    err1   = keras.layers.GlobalAveragePooling3D()(err1)
-    err1   = keras.layers.Reshape((1,))(err1)
-    err1   = keras.layers.Lambda(lambda x:alpha[0]*x)(err1)
-  
+    err1 = error(x_proj,x_input,mask,shape,1)
     # compute error (x_proj-x_input)**2 with full-1 mask
     x_proj2 = model_AE([x_proj,keras.layers.Lambda(lambda x:1.-0.*x)(mask)])
-    err2    = keras.layers.Subtract()([x_proj,x_proj2])
-    err2    = keras.layers.Multiply()([err2,err2])
-    err2   = keras.layers.Reshape((shape[1],shape[2],shape[3],1))(err2)
-    err2   = keras.layers.GlobalAveragePooling3D()(err2)
-    err2   = keras.layers.Reshape((1,))(err2)
-    err2   = keras.layers.Lambda(lambda x:alpha[1]*x)(err2)
-
+    err2    = error(x_proj,x_proj2,mask,shape,0)
     # compute error (x_proj-x_input)**2 with full-1 mask
     x_proj3 = model_AE([x_proj,keras.layers.Lambda(lambda x:0.*x)(mask)])
-    err3    = keras.layers.Subtract()([x_proj3,x_proj])
-    err3    = keras.layers.Multiply()([err3,err3])
-    err3    = keras.layers.Reshape((shape[1],shape[2],shape[3],1))(err3)
-    err3    = keras.layers.GlobalAveragePooling3D()(err3)
-    err3    = keras.layers.Reshape((1,))(err3)
-    err3    = keras.layers.Lambda(lambda x:alpha[2]*x)(err3)
-
+    err3    = error(x_proj3,x_proj,mask,shape,0)
+    # add all errors
     err    = keras.layers.Add()([err1,err2])
     err    = keras.layers.Add()([err,err3])
-    global_model_Grad_Masked  = keras.models.Model([x_input,mask],err)
 
-    if flagDisplay == 1:
-        gradModel.summary()
-        gradMaskModel.summary()
-        global_model_Grad.summary()
-        global_model_Grad_Masked.summary()
+    # Models and print summary
+    global_model_Grad_Masked  = keras.models.Model([x_input,mask],err)
+    gradModel.summary()
+    gradMaskModel.summary()
+    global_model_Grad.summary()
+    global_model_Grad_Masked.summary()
   
     return global_model_Grad,global_model_Grad_Masked
 
