@@ -1,15 +1,16 @@
 from dinae import *
 from .tools import *
 from .graphics import *
-from .mods_flagProcess4.eval_Performance      import eval_AEPerformance
-from .mods_flagProcess4.eval_Performance      import eval_InterpPerformance
-from .mods_flagProcess4.def_DINConvAE         import define_DINConvAE
-from .mods_flagProcess4.def_GradModel         import define_GradModel
-from .mods_flagProcess4.def_GradDINConvAE     import define_GradDINConvAE
-from .mods_flagProcess4.plot_Figs             import plot_Figs
-from .mods_flagProcess4.save_Models           import save_Models
+from .mods_DIN.eval_Performance      import eval_AEPerformance
+from .mods_DIN.eval_Performance      import eval_InterpPerformance
+from .mods_DIN.def_DINConvAE         import define_DINConvAE
+from .mods_DIN.def_GradModel         import define_GradModel
+from .mods_DIN.def_GradDINConvAE     import define_GradDINConvAE
+from .mods_DIN.plot_Figs             import plot_Figs
+from .mods_DIN.save_Models           import save_Models
 
-def flagProcess4_Optim0(dict_global_Params,genFilename,x_train,x_train_missing,mask_train,meanTr,stdTr,x_test,x_test_missing,mask_test,lday_test,encoder,decoder,model_AE,DimCAE):
+def flagProcess4_Optim0(dict_global_Params,genFilename,x_train,x_train_missing,mask_train,gt_train,\
+                        meanTr,stdTr,x_test,x_test_missing,mask_test,gt_test,lday_test,x_train_OI,x_test_OI,encoder,decoder,model_AE,DimCAE):
 
     # import Global Parameters
     for key,val in dict_global_Params.items():
@@ -21,14 +22,14 @@ def flagProcess4_Optim0(dict_global_Params,genFilename,x_train,x_train_missing,m
 
     # train PCA
     pca      = decomposition.PCA(DimCAE)
-    pca.fit(np.reshape(x_train,(x_train.shape[0],x_train.shape[1]*x_train.shape[2]*x_train.shape[3])))
+    pca.fit(np.reshape(gt_train,(gt_train.shape[0],gt_train.shape[1]*gt_train.shape[2]*gt_train.shape[3])))
     
     # apply PCA to test data
-    rec_PCA_Tt       = pca.transform(np.reshape(x_test,(x_test.shape[0],x_test.shape[1]*x_test.shape[2]*x_test.shape[3])))
+    rec_PCA_Tt       = pca.transform(np.reshape(gt_test,(gt_test.shape[0],gt_test.shape[1]*gt_test.shape[2]*gt_test.shape[3])))
     rec_PCA_Tt[:,DimCAE:] = 0.
     rec_PCA_Tt       = pca.inverse_transform(rec_PCA_Tt)
-    mse_PCA_Tt       = np.mean( (rec_PCA_Tt - x_test.reshape((x_test.shape[0],x_test.shape[1]*x_test.shape[2]*x_test.shape[3])))**2 )
-    var_Tt           = np.mean( (x_test-np.mean(x_train,axis=0))** 2 )
+    mse_PCA_Tt       = np.mean( (rec_PCA_Tt - gt_test.reshape((gt_test.shape[0],gt_test.shape[1]*gt_test.shape[2]*gt_test.shape[3])))**2 )
+    var_Tt           = np.mean( (gt_test-np.mean(gt_train,axis=0))** 2 )
     exp_var_PCA_Tt   = 1. - mse_PCA_Tt / var_Tt
     
     print(".......... PCA Dim = %d"%(DimCAE))
@@ -102,7 +103,7 @@ def flagProcess4_Optim0(dict_global_Params,genFilename,x_train,x_train_missing,m
         
         # gradient descent iteration            
         if flagTrOuputWOMissingData == 1:
-            history = global_model_FP.fit([x_train_init,mask_train],x_train,
+            history = global_model_FP.fit([x_train_init,mask_train],gt_train,
                   batch_size=batch_size,
                   epochs = NbEpoc,
                   verbose = 1, 
@@ -196,14 +197,30 @@ def flagProcess4_Optim0(dict_global_Params,genFilename,x_train,x_train_missing,m
             
         # save models
         genSuffixModel=save_Models(dict_global_Params,genFilename,NBProjCurrent,encoder,decoder,iter)
+ 
+        idT = int(np.floor(x_test.shape[3]/2))
+        saved_path = dirSAVE+'/saved_path_%03d'%(iter)+'_FP_'+suf1+'_'+suf2+'.pickle'
+        if flagloadOIData == 1:
+            # generate some plots
+            plot_Figs(dirSAVE,genFilename,genSuffixModel,\
+                  (gt_train*stdTr)+meanTr+x_train_OI,(x_train_missing*stdTr)+meanTr+x_train_OI,mask_train,\
+                  (x_train_pred*stdTr)+meanTr+x_train_OI,(rec_AE_Tr*stdTr)+meanTr+x_train_OI,\
+                  (gt_test*stdTr)+meanTr+x_test_OI,(x_test_missing*stdTr)+meanTr+x_test_OI,mask_test,lday_test,\
+                  (x_test_pred*stdTr)+meanTr+x_test_OI,(rec_AE_Tt*stdTr)+meanTr+x_test_OI,iter)
+            # Save DINAE result         
+            with open(saved_path, 'wb') as handle:
+                pickle.dump([((gt_test*stdTr)+meanTr+x_test_OI)[:,:,:,idT],((x_test_missing*stdTr)+meanTr+x_test_OI)[:,:,:,idT],\
+                         ((x_test_pred*stdTr)+meanTr+x_test_OI)[:,:,:,idT],((rec_AE_Tt*stdTr)+meanTr+x_test_OI)[:,:,:,idT]], handle)
 
-        # generate some plots
-        plot_Figs(dirSAVE,genFilename,genSuffixModel,\
-                  x_train,x_train_missing,x_train_pred,rec_AE_Tr,\
-                  x_test,x_test_missing,lday_test,x_test_pred,rec_AE_Tt,iter)
-
-        # Save DINAE result         
-        saved_path = dirSAVE+'/saved_path_%03d'%(iter)+'.pickle'
-        with open(saved_path, 'wb') as handle:
-            pickle.dump([x_test,x_test_missing,x_test_pred,rec_AE_Tt], handle)
+        else:
+            # generate some plots
+            plot_Figs(dirSAVE,genFilename,genSuffixModel,\
+                  (gt_train*stdTr)+meanTr,(x_train_missing*stdTr)+meanTr,mask_train,\
+                  (x_train_pred*stdTr)+meanTr,(rec_AE_Tr*stdTr)+meanTr,\
+                  (gt_test*stdTr)+meanTr,(x_test_missing*stdTr)+meanTr,mask_test,lday_test,\
+                  (x_test_pred*stdTr)+meanTr,(rec_AE_Tt*stdTr)+meanTr,iter)
+            # Save DINAE result         
+            with open(saved_path, 'wb') as handle:
+                pickle.dump([((gt_test*stdTr)+meanTr)[:,:,:,idT],((x_test_missing*stdTr)+meanTr)[:,:,:,idT],\
+                         ((x_test_pred*stdTr)+meanTr)[:,:,:,idT],((rec_AE_Tt*stdTr)+meanTr)[:,:,:,idT]], handle)
 

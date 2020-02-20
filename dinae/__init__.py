@@ -40,8 +40,8 @@ assert sys.version_info >= (3,5), "Need Python>=3.6"
 dirs = {}
 
 # Define paths
-datapath="/home3/datawork/mbeaucha"
-basepath="/home3/datahome/mbeaucha/algo/PB_ANDA"
+datapath="/mnt/groupadiag302/WG8/data/gridded_data_swot_wocorr"
+basepath="/home/AI4OAC-VM8/DINAE"
 
 print("Initializing DINAE libraries...",flush=True)
 
@@ -79,14 +79,13 @@ from pyflann import *
 import keras
 from keras.constraints import Constraint
 from keras import backend as K
-from .mods.flagProcess0 import *
-from .mods.flagProcess1 import *
-from .mods.flagProcess2 import *
-from .mods.flagProcess3 import *
-from .mods.flagProcess4_Optim0 import *
-from .mods.flagProcess4_Optim1 import *
-from .mods.tools import *
-from .mods.graphics import *
+from .mods.import_Datasets    import *
+from .mods.define_Models      import *
+from .mods.define_Classifiers import *
+from .mods.FP_Learning        import *
+from .mods.GB_Learning        import *
+from .mods.tools              import *
+from .mods.graphics           import *
 
 print("...Done") # ... initializing Libraries
 

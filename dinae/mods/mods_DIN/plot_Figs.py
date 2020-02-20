@@ -3,8 +3,8 @@ from ..tools import *
 from ..graphics import *
 
 def plot_Figs(dirSAVE,genFilename,genSuffixModel,\
-              x_train,x_train_missing,x_train_pred,rec_AE_Tr,\
-              x_test,x_test_missing,lday_test,x_test_pred,rec_AE_Tt,\
+              x_train,x_train_missing,mask_train,x_train_pred,rec_AE_Tr,\
+              x_test,x_test_missing,mask_test,lday_test,x_test_pred,rec_AE_Tt,\
               iter):
  
     # generate some plots
@@ -21,7 +21,7 @@ def plot_Figs(dirSAVE,genFilename,genSuffixModel,\
         shutil.rmtree(figpathTt)
         mk_dir_recursive(figpathTt) 
 
-    idT = 0
+    idT = int(np.floor(x_test.shape[3]/2))
     lon = np.arange(-65,-55,1/20)
     lat = np.arange(30,40,1/20)
     indLat     = np.arange(0,200)
@@ -42,7 +42,7 @@ def plot_Figs(dirSAVE,genFilename,genSuffixModel,\
         vmax = np.quantile(x_train[ifig,:,:,idT].flatten() , 0.95 )
         cmap="coolwarm"
         GT   = x_train[ifig,:,:,idT].squeeze()
-        OBS  = np.where(x_train_missing[ifig,:,:,idT].squeeze()==0,\
+        OBS  = np.where(mask_train[ifig,:,:,idT].squeeze()==0,\
                  np.nan, x_train_missing[ifig,:,:,idT].squeeze())
         PRED = x_train_pred[ifig,:,:,idT].squeeze()
         REC  = rec_AE_Tr[ifig,:,:,idT].squeeze()
@@ -66,7 +66,7 @@ def plot_Figs(dirSAVE,genFilename,genSuffixModel,\
         vmax = np.quantile(Gradient(x_train[ifig,:,:,idT],2).flatten() , 0.95 )
         cmap="viridis"
         GT   = Gradient(x_train[ifig,:,:,idT].squeeze(),2)
-        OBS  = Gradient(np.where(x_train_missing[ifig,:,:,idT].squeeze()==0,\
+        OBS  = Gradient(np.where(mask_train[ifig,:,:,idT].squeeze()==0,\
                  np.nan,x_train_missing[ifig,:,:,idT].squeeze()),2)
         PRED = Gradient(x_train_pred[ifig,:,:,idT].squeeze(),2)
         REC  = Gradient(rec_AE_Tr[ifig,:,:,idT].squeeze(),2)
@@ -94,7 +94,7 @@ def plot_Figs(dirSAVE,genFilename,genSuffixModel,\
         vmax = np.quantile(x_test[ifig,:,:,idT].flatten() , 0.95 )
         cmap="coolwarm"
         GT   = x_test[ifig,:,:,idT].squeeze()
-        OBS  = np.where(x_test_missing[ifig,:,:,idT].squeeze()==0,\
+        OBS  = np.where(mask_test[ifig,:,:,idT].squeeze()==0,\
                  np.nan, x_test_missing[ifig,:,:,idT].squeeze())
         PRED = x_test_pred[ifig,:,:,idT].squeeze()
         REC  = rec_AE_Tt[ifig,:,:,idT].squeeze()
@@ -118,7 +118,7 @@ def plot_Figs(dirSAVE,genFilename,genSuffixModel,\
         vmax = np.quantile(Gradient(x_test[ifig,:,:,idT],2).flatten() , 0.95 )
         cmap="viridis"
         GT   = Gradient(x_test[ifig,:,:,idT].squeeze(),2)
-        OBS  = Gradient(np.where(x_test_missing[ifig,:,:,idT].squeeze()==0,\
+        OBS  = Gradient(np.where(mask_test[ifig,:,:,idT].squeeze()==0,\
                  np.nan, x_test_missing[ifig,:,:,idT].squeeze()),2)
         PRED = Gradient(x_test_pred[ifig,:,:,idT].squeeze(),2)
         REC  = Gradient(rec_AE_Tt[ifig,:,:,idT].squeeze(),2)

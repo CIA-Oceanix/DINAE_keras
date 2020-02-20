@@ -1,13 +1,13 @@
 from dinae import *
-from .mods_flagProcess2.flagProcess2_0 import flagProcess2_0 as fl20
-from .mods_flagProcess2.flagProcess2_1 import flagProcess2_1 as fl21
-from .mods_flagProcess2.flagProcess2_2 import flagProcess2_2 as fl22
-from .mods_flagProcess2.flagProcess2_3 import flagProcess2_3 as fl23
-from .mods_flagProcess2.flagProcess2_4 import flagProcess2_4 as fl24
-from .mods_flagProcess2.flagProcess2_5 import flagProcess2_5 as fl25
-from .mods_flagProcess2.flagProcess2_6 import flagProcess2_6 as fl26
-from .mods_flagProcess2.flagProcess2_7 import flagProcess2_7 as fl27
-from .mods_flagProcess2.flagProcess2_8 import flagProcess2_8 as fl28
+from .mods_NN.flagProcess2_0 import flagProcess2_0 as fl20
+from .mods_NN.flagProcess2_1 import flagProcess2_1 as fl21
+from .mods_NN.flagProcess2_2 import flagProcess2_2 as fl22
+from .mods_NN.flagProcess2_3 import flagProcess2_3 as fl23
+from .mods_NN.flagProcess2_4 import flagProcess2_4 as fl24
+from .mods_NN.flagProcess2_5 import flagProcess2_5 as fl25
+from .mods_NN.flagProcess2_6 import flagProcess2_6 as fl26
+from .mods_NN.flagProcess2_7 import flagProcess2_7 as fl27
+from .mods_NN.flagProcess2_8 import flagProcess2_8 as fl28
 
 def flagProcess2(dict_global_Params,genFilename,x_train,mask_train,x_test,mask_test):
 

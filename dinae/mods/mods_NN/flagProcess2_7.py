@@ -23,7 +23,7 @@ def flagProcess2_7(dict_global_Params,genFilename,x_train,mask_train,x_test,mask
     for key,val in dict_global_Params.items():
         exec("globals()['"+key+"']=val")
 
-    WFilter       = 30#
+    WFilter       = 11#
     NbResUnit     = 10#3#
     dW    = 0
     flagdownScale = 1 #: 0: only HR scale, 1 : only LR, 2 : HR + LR , 2 : MR, HR + LR annd LR,
@@ -188,7 +188,6 @@ def flagProcess2_7(dict_global_Params,genFilename,x_train,mask_train,x_test,mask
         x          = decoder(encoder([input_data,mask]))
         model_AE   = keras.models.Model([input_data,mask],x)      
     elif flagdownScale == 3:
-        flag_MultiScaleAEModel = 1
         
         input_data = keras.layers.Input(shape=(x_train.shape[1],x_train.shape[2],x_train.shape[3]))
         mask       = keras.layers.Input(shape=(x_train.shape[1],x_train.shape[2],x_train.shape[3]))
