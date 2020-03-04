@@ -76,6 +76,7 @@ from pyflann import *
 ##################################
 # Tools
 ##################################
+import tensorflow as tf
 import keras
 from keras.constraints import Constraint
 from keras import backend as K

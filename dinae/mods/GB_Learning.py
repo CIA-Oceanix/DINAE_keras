@@ -132,11 +132,47 @@ def flagProcess4_Optim1(dict_global_Params,genFilename,x_train,x_train_missing,m
                   verbose = 1,
                   validation_split=val_split)
 
+        # *********************** #
+        # Prediction on test data #
+        # *********************** #
+
         x_train_pred    = global_model_Grad.predict([x_train_init,mask_train])
         x_test_pred     = global_model_Grad.predict([x_test_init,mask_test])
     
-        mse_train,exp_var_train,mse_test,exp_var_test,mse_train_interp,exp_var_train_interp,mse_test_interp,exp_var_test_interp = eval_InterpPerformance(mask_train,x_train,x_train_missing,x_train_pred,
-                   mask_test,x_test,x_test_missing,x_test_pred)
+        # trained AE applied to gap-free data
+        if flagUseMaskinEncoder == 1:
+            rec_AE_Tr     = model_AE.predict([x_train,np.zeros((mask_train.shape))])
+            rec_AE_Tt     = model_AE.predict([x_test,np.zeros((mask_train.shape))])
+        else:
+            rec_AE_Tr     = model_AE.predict([x_train,np.ones((mask_train.shape))])
+            rec_AE_Tt     = model_AE.predict([x_test,np.ones((mask_test.shape))])
+
+        # remove additional covariates from variables
+        if include_covariates == True:
+            mask_train_wc, x_train_wc, x_train_init_wc, x_train_missing_wc,\
+            mask_test_wc, x_test_wc, x_test_init_wc, x_test_missing_wc,\
+            meanTr_wc, stdTr_wc=\
+            mask_train, x_train, x_train_init, x_train_missing,\
+            mask_test, x_test, x_test_init, x_test_missing,\
+            meanTr, stdTr
+            index = np.arange(0,3*size_tw,3)
+            mask_train      = mask_train[:,:,:,index]
+            x_train         = x_train[:,:,:,index]
+            x_train_init    = x_train_init[:,:,:,index]
+            x_train_missing = x_train_missing[:,:,:,index]
+            mask_test      = mask_test[:,:,:,index]
+            x_test         = x_test[:,:,:,index]
+            x_test_init    = x_test_init[:,:,:,index]
+            x_test_missing = x_test_missing[:,:,:,index]
+            meanTr = meanTr[0]
+            stdTr  = stdTr[0]
+
+        mse_train,exp_var_train,\
+        mse_test,exp_var_test,\
+        mse_train_interp,exp_var_train_interp,\
+        mse_test_interp,exp_var_test_interp =\
+        eval_InterpPerformance(mask_train,x_train,x_train_missing,x_train_pred,\
+                               mask_test,x_test,x_test_missing,x_test_pred)
         
         print(".......... iter %d"%(iter))
         print('.... Error for all data (Tr)        : %.2e %.2f%%'%(mse_train[1]*stdTr**2,100.*exp_var_train[1]))
@@ -178,9 +214,6 @@ def flagProcess4_Optim1(dict_global_Params,genFilename,x_train,x_train_missing,m
         print('   ')
         
         # AE performance of the trained AE applied to gap-free data
-        rec_AE_Tr     = model_AE.predict([x_train,np.ones((mask_train.shape))])
-        rec_AE_Tt     = model_AE.predict([x_test,np.ones((mask_test.shape))])
-        
         exp_var_AE_Tr,exp_var_AE_Tt = eval_AEPerformance(x_train,rec_AE_Tr,x_test,rec_AE_Tt)
         
         print(".......... Auto-encoder performance when applied to gap-free data")
@@ -188,13 +221,12 @@ def flagProcess4_Optim1(dict_global_Params,genFilename,x_train,x_train_missing,m
         print('.... explained variance AE (Tt)  : %.2f%%'%(100.*exp_var_AE_Tt))
         
         if flagUseMaskinEncoder == 1:
-            rec_AE_Tr     = model_AE.predict([x_train,np.zeros((mask_train.shape))])
-            rec_AE_Tt     = model_AE.predict([x_test,np.zeros((mask_train.shape))])
         
             exp_var_AE_Tr,exp_var_AE_Tt = eval_AEPerformance(x_train,rec_AE_Tr,x_test,rec_AE_Tt)
         
             print('.... explained variance AE (Tr) with mask  : %.2f%%'%(100.*exp_var_AE_Tr))
             print('.... explained variance AE (Tt) with mask  : %.2f%%'%(100.*exp_var_AE_Tt))
+
         print('.... explained variance PCA (Tr) : %.2f%%'%(100.*np.cumsum(pca.explained_variance_ratio_)[DimCAE-1]))
         print('.... explained variance PCA (Tt) : %.2f%%'%(100.*exp_var_PCA_Tt))  
 
@@ -205,10 +237,10 @@ def flagProcess4_Optim1(dict_global_Params,genFilename,x_train,x_train_missing,m
             x_test_init  = mask_test  * x_test_missing  + (1.-mask_test)  * x_test_pred
             
         # save models
-        genSuffixModel=save_Models(dict_global_Params,genFilename,NBProjCurrent,encoder,decoder,iter,gradModel,gradMaskModel,NBGradCurrent)
-
+        genSuffixModel=save_Models(dict_global_Params,genFilename,NBProjCurrent,encoder,decoder,iter)
+ 
         idT = int(np.floor(x_test.shape[3]/2))
-        saved_path = dirSAVE+'/saved_path_%03d'%(iter)+'_GB_'+suf1+'_'+suf2+'.pickle'
+        saved_path = dirSAVE+'/saved_path_%03d'%(iter)+'_FP_'+suf1+'_'+suf2+'.pickle'
         if flagloadOIData == 1:
             # generate some plots
             plot_Figs(dirSAVE,genFilename,genSuffixModel,\
@@ -233,5 +265,11 @@ def flagProcess4_Optim1(dict_global_Params,genFilename,x_train,x_train_missing,m
                 pickle.dump([((gt_test*stdTr)+meanTr)[:,:,:,idT],((x_test_missing*stdTr)+meanTr)[:,:,:,idT],\
                          ((x_test_pred*stdTr)+meanTr)[:,:,:,idT],((rec_AE_Tt*stdTr)+meanTr)[:,:,:,idT]], handle)
 
-
-
+        # reset variables with additional covariates
+        if include_covariates == True:
+            mask_train, x_train, x_train_init, x_train_missing,\
+            mask_test, x_test, x_test_init, x_test_missing,\
+            meanTr, stdTr=\
+            mask_train_wc, x_train_wc, x_train_init_wc, x_train_missing_wc,\
+            mask_test_wc, x_test_wc, x_test_init_wc, x_test_missing_wc,\
+            meanTr_wc, stdTr_wc

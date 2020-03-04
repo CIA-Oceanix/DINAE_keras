@@ -18,15 +18,17 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # list of global parameters (comments to add)
-    flagTrWMissingData          = 0   # Training phase with or without missing data
-    flagloadOIData 		= 1   # load OI: work on rough variable or anomaly
-    Wsquare     		= 4   # half-width of holes
-    Nsquare     		= 3   # number of holes
-    DimAE       		= 100 # Dimension of the latent space
-    flagAEType  		= 7   # model type, ConvAE or GE-NN
-    flag_MultiScaleAEModel      = 0   # see flagProcess2_7: work on HR(0), LR(1), or HR+LR(2)
-    flagOptimMethod 		= 0   # 0 DINAE : iterated projections, 1 : Gradient descent  
-    flagGradModel   		= 0   # 0: F(Grad,Mask), 1: F==(Grad,Grad(t-1),Mask), 2: LSTM(Grad,Mask)
+    flagTrWMissingData          = 0     # Training phase with or without missing data
+    flagloadOIData 		= 1     # load OI: work on rough variable or anomaly
+    include_covariates          = True # use sst and sss
+    size_tw                     = 11    # Length of the 4th dimension          
+    Wsquare     		= 4     # half-width of holes
+    Nsquare     		= 3     # number of holes
+    DimAE       		= 100   # Dimension of the latent space
+    flagAEType  		= 7     # model type, ConvAE or GE-NN
+    flag_MultiScaleAEModel      = 0     # see flagProcess2_7: work on HR(0), LR(1), or HR+LR(2)
+    flagOptimMethod 		= 0     # 0 DINAE : iterated projections, 1 : Gradient descent  
+    flagGradModel   		= 0     # 0: F(Grad,Mask), 1: F==(Grad,Grad(t-1),Mask), 2: LSTM(Grad,Mask)
     sigNoise        		= 1e-1
     flagUseMaskinEncoder 	= 0
     flagTrOuputWOMissingData    = 1
@@ -34,12 +36,12 @@ if __name__ == '__main__':
     flagDataWindowing 		= 2  # 2 for SSH case-study
     dropout           		= 0.0
     wl2               		= 0.0000
-    batch_size        		= 4
+    batch_size        		= 12
     NbEpoc            		= 20
     if flagTrWMissingData == 1:
-        Niter = 40
+        Niter = 20
     else:
-        Niter = 1
+        Niter = 20
 
     # create the output directory
     if flagAEType==6:
@@ -69,7 +71,7 @@ if __name__ == '__main__':
     def createGlobParams(params):
         return dict(((k, eval(k)) for k in params))
     list_globParams=['flagTrOuputWOMissingData','flagTrWMissingData',\
-    'flagloadOIData', 'Wsquare',\
+    'flagloadOIData','include_covariates','size_tw','Wsquare',\
     'Nsquare','DimAE','flagAEType',\
     'flagOptimMethod','flagGradModel','sigNoise',\
     'flagUseMaskinEncoder','stdMask',\
