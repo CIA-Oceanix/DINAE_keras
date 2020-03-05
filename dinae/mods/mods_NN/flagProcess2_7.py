@@ -26,7 +26,7 @@ def flagProcess2_7(dict_global_Params,genFilename,x_train,mask_train,x_test,mask
 
     WFilter       = 11#
     NbResUnit     = 10#3#
-    dW    = 0
+    dW            = 0
     flagdownScale = 1 #: 0: only HR scale, 1 : only LR, 2 : HR + LR , 2 : MR, HR + LR annd LR,
     scaleLR       = 2**2
     NbFilter      = 1*DimAE
@@ -99,8 +99,8 @@ def flagProcess2_7(dict_global_Params,genFilename,x_train,mask_train,x_test,mask
             x  = keras.layers.Conv2D(x_train.shape[3],(1,1),activation='linear', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x)  
             x1 = keras.layers.Conv2DTranspose(x_train.shape[3],(scaleLR,scaleLR),strides=(scaleLR,scaleLR),use_bias=False,activation='linear',padding='same',output_padding=None,kernel_regularizer=keras.regularizers.l2(wl2))(x)
         else:
-            x  = keras.layers.Conv2D(int(x_train.shape[3]/3),(1,1),activation='linear', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x)
-            x1 = keras.layers.Conv2DTranspose(int(x_train.shape[3]/3),(scaleLR,scaleLR),strides=(scaleLR,scaleLR),use_bias=False,activation='linear',padding='same',output_padding=None,kernel_regularizer=keras.regularizers.l2(wl2))(x)
+            x  = keras.layers.Conv2D(int(x_train.shape[3]/(N_cov+1)),(1,1),activation='linear', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x)
+            x1 = keras.layers.Conv2DTranspose(int(x_train.shape[3]/(N_cov+1)),(scaleLR,scaleLR),strides=(scaleLR,scaleLR),use_bias=False,activation='linear',padding='same',output_padding=None,kernel_regularizer=keras.regularizers.l2(wl2))(x)
         
         if flagSRResNet == 1: ## postprocessing: super-resolution-like block
             x1  = keras.layers.Conv2D(DimAE,(3,3),activation='linear', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x1)               
@@ -124,13 +124,13 @@ def flagProcess2_7(dict_global_Params,genFilename,x_train,mask_train,x_test,mask
             if include_covariates==False:         
                 x1  = keras.layers.Conv2D(x_train.shape[3],(3,3),activation='linear', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x1)
             else:
-                x1  = keras.layers.Conv2D(int(x_train.shape[3]/3),(3,3),activation='linear', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x1)      
+                x1  = keras.layers.Conv2D(int(x_train.shape[3]/(N_cov+1)),(3,3),activation='linear', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x1)      
         else:
             x1  = keras.layers.Conv2D(2*DimAE,(3,3),activation='relu', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x1) 
             if include_covariates==False:         
                 x1  = keras.layers.Conv2D(x_train.shape[3],(3,3),activation='linear', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x1)
             else:
-                x1  = keras.layers.Conv2D(int(x_train.shape[3]/3),(3,3),activation='linear', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x1)          
+                x1  = keras.layers.Conv2D(int(x_train.shape[3]/(N_cov+1)),(3,3),activation='linear', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x1)          
      
     # fine scale
     if flagUseMaskinEncoder == 1:
@@ -167,7 +167,7 @@ def flagProcess2_7(dict_global_Params,genFilename,x_train,mask_train,x_test,mask
     if include_covariates==False:
         x  = keras.layers.Conv2D(x_train.shape[3],(1,1),activation='linear', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x)
     else:
-        x  = keras.layers.Conv2D(int(x_train.shape[3]/3),(1,1),activation='linear', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x)
+        x  = keras.layers.Conv2D(int(x_train.shape[3]/(N_cov+1)),(1,1),activation='linear', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x)
 
     if flagdownScale == 0:
         encoder    = keras.models.Model([input_layer,mask],x)
@@ -212,7 +212,7 @@ def flagProcess2_7(dict_global_Params,genFilename,x_train,mask_train,x_test,mask
     if include_covariates==False:
         size_tw = x_train.shape[3]
     else:
-        size_tw = int(x_train.shape[3]/3)
+        size_tw = int(x_train.shape[3]/(N_cov+1))
     #model_AE.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=1e-3))
     model_AE.compile(loss=keras_custom_loss_function(size_tw),optimizer=keras.optimizers.Adam(lr=1e-3))
     model_AE.summary()

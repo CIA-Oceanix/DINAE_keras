@@ -50,7 +50,7 @@ def flagProcess2_6(dict_global_Params,genFilename,x_train,mask_train,x_test,mask
         x = keras.layers.Conv2D(x_train.shape[3],(3,3),activation='linear', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x)
     else:
     # else
-        x = keras.layers.Conv2D(int(x_train.shape[3]/3),(3,3),activation='linear', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x)
+        x = keras.layers.Conv2D(int(x_train.shape[3]/(N_cov+1)),(3,3),activation='linear', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x)
     decoder       = keras.models.Model(decoder_input,x)
       
     encoder.summary()
@@ -65,7 +65,7 @@ def flagProcess2_6(dict_global_Params,genFilename,x_train,mask_train,x_test,mask
     if include_covariates==False:
         size_tw = x_train.shape[3]
     else:
-        size_tw = int(x_train.shape[3]/3)
+        size_tw = int(x_train.shape[3]/(N_cov+1))
     model_AE.compile(loss=keras_custom_loss_function(size_tw),optimizer=keras.optimizers.Adam(lr=1e-3))
     model_AE.summary()
 

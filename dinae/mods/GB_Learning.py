@@ -1,9 +1,9 @@
 from dinae import *
 from .tools import *
 from .graphics import *
+from .load_Models_GB                 import load_Models_GB
 from .mods_DIN.eval_Performance      import eval_AEPerformance
 from .mods_DIN.eval_Performance      import eval_InterpPerformance
-from .mods_DIN.def_DINConvAE         import define_DINConvAE
 from .mods_DIN.def_GradModel         import define_GradModel
 from .mods_DIN.def_GradDINConvAE     import define_GradDINConvAE
 from .mods_DIN.plot_Figs             import plot_Figs
@@ -49,48 +49,16 @@ def flagProcess4_Optim1(dict_global_Params,genFilename,x_train,x_train_missing,m
     lrUpdate       = [1e-3,1e-5,1e-4,1e-5,1e-5,1e-5,1e-6,1e-5,1e-6]
     val_split      = 0.1
     
-    flagLoadModelAE = 0
-    # Here, specify a preloaded AE model
-    fileAEModelInit = dirSAVE+'???.mod'
-    
     iterInit = 0
-    if flagLoadModelAE > 0 :
-        iterInit = 13
     IterTrainAE = 0
     IterUpdateInit = 10000
     
     ## initialization
-    x_train_init = np.copy(x_train_missing)
-    x_test_init  = np.copy(x_test_missing)
-
-    comptUpdate = 0
-    if flagLoadModelAE > 0 :
-        print('.................. Load Encoder/Decoder '+fileAEModelInit)
-        encoder.load_weights(fileAEModelInit)
-        decoder.load_weights(fileAEModelInit.replace('Encoder','Decoder'))
-
-        for layer in encoder.layers:
-            layer.trainable = True
-        for layer in decoder.layers:
-            layer.trainable = True
-            
-        comptUpdate   = 4
-        NBProjCurrent = NbProjection[comptUpdate-1]
-        NBGradCurrent = NbGradIter[comptUpdate-1]
-        print("..... Initialize number of projections/Graditer in GradCOnvAE model # %d/%d"%(NbProjection[comptUpdate-1],NbGradIter[comptUpdate-1]))
-        gradModel,gradMaskModel =  define_GradModel(model_AE,x_train.shape,flagGradModel)
-            
-        if flagLoadModelAE == 2:
-            gradMaskModel.load_weights(fileAEModelInit.replace('Encoder','GradMaskModel'))
-            gradModel.load_weights(fileAEModelInit.replace('Encoder','GradModel'))
-
-        global_model_Grad,global_model_Grad_Masked = define_GradDINConvAE(NbProjection[comptUpdate-1],NbGradIter[comptUpdate-1],model_AE,x_train.shape,gradModel,gradMaskModel,flagGradModel)
-        if flagTrOuputWOMissingData == 1:
-            global_model_Grad.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate-1]))
-        else:
-            global_model_Grad_Masked.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate-1]))
+    if flagLoadModel == 1:
+        global_model_Grad, global_model_Grad_Masked =\
+        load_Models_GB(dict_global_Params, genFilename, x_train.shape, fileAEModelInit, [2,2,1e-3])
     else:
-        gradModel,gradMaskModel =  define_GradModel(model_AE,x_train.shape,flagGradModel)
+        gradModel,gradMaskModel = define_GradModel(model_AE,x_train.shape,flagGradModel)
 
     # ******************** #
     # Start Learning model #
@@ -108,7 +76,7 @@ def flagProcess4_Optim1(dict_global_Params,genFilename,x_train,x_train_missing,m
         
             NBProjCurrent = NbProjection[comptUpdate]
             NBGradCurrent = NbGradIter[comptUpdate]
-            print("..... Update/initialize number of projections/Graditer in GradCOnvAE model # %d/%d"%(NbProjection[comptUpdate],NbGradIter[comptUpdate]))
+            print("..... Update/initialize number of projections/Graditer in GradConvAE model # %d/%d"%(NbProjection[comptUpdate],NbGradIter[comptUpdate]))
             global_model_Grad,global_model_Grad_Masked = define_GradDINConvAE(NbProjection[comptUpdate],NbGradIter[comptUpdate],model_AE,x_train.shape,gradModel,gradMaskModel,flagGradModel)
             if flagTrOuputWOMissingData == 1:
                 global_model_Grad.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
@@ -155,7 +123,7 @@ def flagProcess4_Optim1(dict_global_Params,genFilename,x_train,x_train_missing,m
             mask_train, x_train, x_train_init, x_train_missing,\
             mask_test, x_test, x_test_init, x_test_missing,\
             meanTr, stdTr
-            index = np.arange(0,3*size_tw,3)
+            index = np.arange(0,(N_cov+1)*size_tw,(N_cov+1))
             mask_train      = mask_train[:,:,:,index]
             x_train         = x_train[:,:,:,index]
             x_train_init    = x_train_init[:,:,:,index]

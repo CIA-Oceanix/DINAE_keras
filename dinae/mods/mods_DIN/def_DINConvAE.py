@@ -5,17 +5,13 @@ def slice_layer(index):
         return tf.gather(x_input, index, axis=3)
     return keras.layers.Lambda(func)
 
-def assign_sliced_layer(size_tw,x_output):
+def assign_sliced_layer(size_tw,N_cov,x_output):
     def func(x_input,x_output):
-        index = np.arange(1,3*size_tw,3,dtype='int32')
-        x_cov1 = slice_layer(index)(x_input)
-        index = np.arange(2,3*size_tw,3,dtype='int32')
-        x_cov2 = slice_layer(index)(x_input)
-        x_output = keras.layers.Concatenate()([x_output,x_cov1])
-        x_output = keras.layers.Concatenate()([x_output,x_cov2])
-        index  = np.stack([np.arange(0,size_tw),\
-                 np.arange(size_tw,2*size_tw),\
-                 np.arange(2*size_tw,3*size_tw)]).T.flatten()
+        for i in range(1,(N_cov+1)):
+            index = np.arange(i,(N_cov+1)*size_tw,(N_cov+1),dtype='int32')
+            x_output = keras.layers.Concatenate()([x_output,slice_layer(index)(x_input)])
+        index  = np.stack([np.arange(i*size_tw,(i+1)*size_tw) \
+                           for i in range(0,N_cov+1)]).T.flatten()
         x_proj = slice_layer(index)(x_output)
         return x_proj
     return keras.layers.Lambda(func,arguments={'x_output':x_output})
@@ -41,7 +37,7 @@ def error(x1,x2,mask,size_tw,shape,alpha):
 
 def define_DINConvAE(NiterProjection,model_AE,shape,\
                      flag_MultiScaleAEModel,flagUseMaskinEncoder,\
-                     size_tw,include_covariates):
+                     size_tw,include_covariates,N_cov=0):
 
     # encoder-decoder with masked data
     x_input         = keras.layers.Input((shape[1],shape[2],shape[3]))
@@ -61,7 +57,7 @@ def define_DINConvAE(NiterProjection,model_AE,shape,\
         x        = keras.layers.Multiply()([slice_layer(index)(x),slice_layer(index)(mask)])
         x        = keras.layers.Add()([x,x_proj])
         if include_covariates==True:
-            x = assign_sliced_layer(size_tw,x)(x_input)
+            x = assign_sliced_layer(size_tw,N_cov,x)(x_input)
 
     if flag_MultiScaleAEModel == 1:
         x_proj,x_projLR = model_AE_MR([x,mask])
@@ -117,7 +113,7 @@ def define_DINConvAE(NiterProjection,model_AE,shape,\
         index   = np.arange(0,3*size_tw,3,dtype='int32')
         x_proj.set_shape((x_input.shape[0],x_input.shape[1],\
                           x_input.shape[2],size_tw))
-        x_proj  = assign_sliced_layer(size_tw,x_proj)(x_input)
+        x_proj  = assign_sliced_layer(size_tw,N_cov,x_proj)(x_input)
         x_proj2 = model_AE([x_proj,keras.layers.Lambda(lambda x:1.-0.*x)(mask)])
     err2    = error(x_proj,x_proj2,mask,size_tw,shape,0)
     # compute error (x_proj-x_input)**2 with full-1 mask

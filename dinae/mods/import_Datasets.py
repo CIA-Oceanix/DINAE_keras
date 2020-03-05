@@ -9,7 +9,18 @@ def Imputing_NaN(data, invalid=None):
     ind = nd.distance_transform_edt(invalid, return_distances=False, return_indices=True)
     return data[tuple(ind)]
 
-def flagProcess0(dict_global_Params,lag,opt,type_obs):
+def Imputing_NaN_3d(data, invalid=None):
+    data_wonan = data
+    for i in range(data.shape[0]):
+        data_wonan[i,:,:] = Imputing_NaN(data[i,:,:])
+    return data_wonan
+
+def ndarray_NaN(shape):
+    arr    = np.empty(shape)
+    arr[:] = np.nan
+    return arr
+
+def import_Data(dict_global_Params,type_obs):
 
     # import Global Parameters
     for key,val in dict_global_Params.items():
@@ -21,30 +32,17 @@ def flagProcess0(dict_global_Params,lag,opt,type_obs):
     indN_Tt = np.concatenate([np.arange(60,80),np.arange(140,160),\
                              np.arange(220,240),np.arange(300,320)])
     indN_Tr = np.delete(range(365),indN_Tt)
-    #indN_Tr = np.arange(0,315)
-    #indN_Tt = np.arange(315,365)
     lday_test=[ datetime.strftime(datetime.strptime("2012-10-01",'%Y-%m-%d')\
                           + timedelta(days=np.float64(i)),"%Y-%m-%d") for i in indN_Tt ]
-
     indLat     = np.arange(0,200)
     indLon     = np.arange(0,200)         
-    fileMod = "/mnt/groupadiag302/WG8/maps/NATL60-CJM165_ssh_y2013.1y.nc"
-    if opt=="nadir":
-        fileObs = "/mnt/groupadiag302/WG8/data/gridded_data_swot_wocorr/dataset_nadir_"+lag+"d.nc"
-    elif opt=="swot":
-        fileObs = "/mnt/groupadiag302/WG8/data/gridded_data_swot_wocorr/dataset_swot.nc" 
-    else:
-        fileObs = "/mnt/groupadiag302/WG8/data/gridded_data_swot_wocorr/dataset_nadir_"+lag+"d_swot.nc"
-    fileOI  = "/mnt/groupadiag302/WG8/oi/ssh_NATL60_4nadir.nc"
  
     #*** TRAINING DATASET ***#
     print("1) .... Load SSH dataset (training data): "+fileObs)
 
     nc_data_mod = Dataset(fileMod,'r')
     nc_data_obs = Dataset(fileObs,'r')    
-    x_orig      = np.copy(nc_data_mod['ssh'][:,indLon,indLat])
-    for i in range(x_orig.shape[0]):
-        x_orig[i,:,:] = Imputing_NaN(x_orig[i,:,:])
+    x_orig      = Imputing_NaN_3d(np.copy(nc_data_mod['ssh'][:,indLon,indLat]))
     # masking strategie differs according to flagTrWMissingData flag 
     mask_orig         = np.copy(nc_data_obs['ssh_mod'][:,indLon,indLat])
     mask_orig         = np.asarray(~np.isnan(mask_orig))
@@ -63,41 +61,30 @@ def flagProcess0(dict_global_Params,lag,opt,type_obs):
     if flagloadOIData == 1:
         print(".... Load OI SSH dataset (training data): "+fileOI)
         nc_data    = Dataset(fileOI,'r')
-        x_OI = np.copy(nc_data['ssh_mod'][:,indLon,indLat])
-        for i in range(x_OI.shape[0]):
-            x_OI[i,:,:] = Imputing_NaN(x_OI[i,:,:])
+        x_OI = Imputing_NaN_3d(np.copy(nc_data['ssh_mod'][:,indLon,indLat]))
         nc_data.close()
+    # load covariates
     if include_covariates==True:
-        fileAux_SST = "/mnt/groupadiag302/WG8/maps/NATL60-CJM165_sst_y2013.1y.nc"
-        fileAux_SSS = "/mnt/groupadiag302/WG8/maps/NATL60-CJM165_sss_y2013.1y.nc"
-        nc_data_cov1 = Dataset(fileAux_SST,'r')
-        print(".... Load SST dataset (training data): "+fileAux_SST)
-        sst          = np.copy(nc_data_cov1['sst'][:,indLon,indLat])
-        for i in range(x_OI.shape[0]):
-            sst[i,:,:] = Imputing_NaN(sst[i,:,:])
-        nc_data_cov2 = Dataset(fileAux_SSS,'r')
-        print(".... Load SSS dataset (training data): "+fileAux_SSS)
-        sss          = np.copy(nc_data_cov2['sss'][:,indLon,indLat])
-        for i in range(x_OI.shape[0]):
-            sss[i,:,:] = Imputing_NaN(sss[i,:,:])
+        cov=[]
+        for icov in range(N_cov):
+            nc_data_cov = Dataset(lfile_cov[icov],'r')
+            print(".... Load "+lid_cov[icov]+" dataset (training data): "+lfile_cov[icov])
+            cov.append(Imputing_NaN_3d(np.copy(nc_data_cov[lname_cov[icov]][:,indLon,indLat])))
+            nc_data_cov.close()
 
     # create the time series (additional 4th time dimension)
-    x_train    = np.empty((len(indN_Tr),len(indLon),len(indLat),size_tw))
-    x_train[:] = np.nan
-    mask_train = np.empty((len(indN_Tr),len(indLon),len(indLat),size_tw))
-    mask_train[:] = np.nan
-    err_train = np.zeros((len(indN_Tr),len(indLon),len(indLat),size_tw))
-    x_train_OI = np.empty((len(indN_Tr),len(indLon),len(indLat),size_tw))
-    x_train_OI[:] = np.nan
+    x_train    = ndarray_NaN((len(indN_Tr),len(indLon),len(indLat),size_tw))
+    mask_train = ndarray_NaN((len(indN_Tr),len(indLon),len(indLat),size_tw))
+    err_train  = np.zeros((len(indN_Tr),len(indLon),len(indLat),size_tw))
+    x_train_OI = ndarray_NaN((len(indN_Tr),len(indLon),len(indLat),size_tw))
     if include_covariates==True:
-        sst_train      = np.empty((len(indN_Tr),len(indLon),len(indLat),size_tw))
-        sst_train[:]   = np.nan
-        mask_sst_train = np.ones((len(indN_Tr),len(indLon),len(indLat),size_tw))
-        err_sst_train  = np.zeros((len(indN_Tr),len(indLon),len(indLat),size_tw))
-        sss_train      = np.empty((len(indN_Tr),len(indLon),len(indLat),size_tw))
-        sss_train[:]   = np.nan
-        mask_sss_train = np.ones((len(indN_Tr),len(indLon),len(indLat),size_tw))
-        err_sss_train  = np.zeros((len(indN_Tr),len(indLon),len(indLat),size_tw))
+        cov_train      = []
+        mask_cov_train = []
+        err_cov_train  = []
+        for icov in range(N_cov):
+            cov_train.append(ndarray_NaN((len(indN_Tr),len(indLon),len(indLat),size_tw)))
+            mask_cov_train.append(np.ones((len(indN_Tr),len(indLon),len(indLat),size_tw)))
+            err_cov_train.append(np.zeros((len(indN_Tr),len(indLon),len(indLat),size_tw)))
     id_rm = []
     for k in range(len(indN_Tr)):
         idt = np.arange(indN_Tr[k]-np.floor(size_tw/2.),indN_Tr[k]+np.floor(size_tw/2.)+1,1)
@@ -115,22 +102,23 @@ def flagProcess0(dict_global_Params,lag,opt,type_obs):
             err_train[k,:,:,idt2] = err_orig[idt,:,:]
         # import covariates
         if include_covariates==True:
-            sst_train[k,:,:,idt2]    = sst[idt,:,:]
-            sss_train[k,:,:,idt2]    = sss[idt,:,:]
+            for icov in range(N_cov):
+                cov_train[icov][k,:,:,idt2] = cov[icov][idt,:,:]
         mask_train[k,:,:,idt2] = mask_orig[idt,:,:]
     # Build ground truth data train
     gt_train = x_train
     # Add covariates (merge x_train and mask_train with covariates)
     if include_covariates==True:
-       x_train = np.concatenate([x_train,sst_train,sss_train],axis=3)
-       mask_train = np.concatenate([mask_train,mask_sst_train,mask_sss_train],axis=3)
-       err_train = np.concatenate([err_train,err_sst_train,err_sss_train],axis=3)
-       order = np.stack([np.arange(0,size_tw),\
-                 np.arange(size_tw,2*size_tw),\
-                 np.arange(2*size_tw,3*size_tw)]).T.flatten()
-       x_train = x_train[:,:,:,order]
-       mask_train = mask_train[:,:,:,order]
-       err_train = err_train[:,:,:,order]
+        cov_train.insert(0,x_train)
+        mask_cov_train.insert(0,mask_train)
+        err_cov_train.insert(0,err_train)
+        x_train    = np.concatenate(cov_train,axis=3)
+        mask_train = np.concatenate(mask_cov_train,axis=3)
+        err_train  = np.concatenate(err_cov_train,axis=3)
+        order      = np.stack([np.arange(i*size_tw,(i+1)*size_tw) for i in range(N_cov+1)]).T.flatten()
+        x_train    = x_train[:,:,:,order]
+        mask_train = mask_train[:,:,:,order]
+        err_train  = err_train[:,:,:,order]
     # Build gappy (and potentially noisy) data train
     x_train_missing = (x_train * mask_train) + err_train
     if len(id_rm)>0:
@@ -142,24 +130,23 @@ def flagProcess0(dict_global_Params,lag,opt,type_obs):
     print('.... # loaded samples: %d '%x_train.shape[0])
 
     # remove patch if no SSH data
-    ss            = np.sum( np.sum( np.sum( x_train < -100 , axis = -1) , axis = -1 ) , axis = -1)
-    ind           = np.where( ss == 0 )
+    ss              = np.sum( np.sum( np.sum( x_train < -100 , axis = -1) , axis = -1 ) , axis = -1)
+    ind             = np.where( ss == 0 )
     x_train         = x_train[ind[0],:,:,:]
     gt_train        = gt_train[ind[0],:,:,:]
     x_train_missing = x_train_missing[ind[0],:,:,:]
     mask_train      = mask_train[ind[0],:,:,:]
     if flagloadOIData == 1:
-        x_train_OI = x_train_OI[ind[0],:,:,:]
+        x_train_OI  = x_train_OI[ind[0],:,:,:]
     rateMissDataTr_ = np.asarray(np.sum( np.sum( np.sum( mask_train , axis = -1) , axis = -1 ) , axis = -1), dtype=np.float64)
     rateMissDataTr_ /= mask_train.shape[1]*mask_train.shape[2]*mask_train.shape[3]
-    ind        = np.where( rateMissDataTr_  >= thrMisData )
+    ind             = np.where( rateMissDataTr_  >= thrMisData )
     gt_train        = gt_train[ind[0],:,:,:]
-    x_train        = x_train[ind[0],:,:,:]
+    x_train         = x_train[ind[0],:,:,:]
     x_train_missing = x_train_missing[ind[0],:,:,:]
     mask_train      = mask_train[ind[0],:,:,:]
     if flagloadOIData == 1:
         x_train_OI = x_train_OI[ind[0],:,:,:]
-
     y_train = np.ones((x_train.shape[0]))
 
     if flagloadOIData:
@@ -171,22 +158,18 @@ def flagProcess0(dict_global_Params,lag,opt,type_obs):
     print("2) .... Load SST dataset (test data): "+fileObs)      
 
     # create the time series (additional 4th time dimension)
-    x_test    = np.empty((len(indN_Tt),len(indLon),len(indLat),size_tw))
-    x_test[:] = np.nan
-    mask_test = np.empty((len(indN_Tt),len(indLon),len(indLat),size_tw))
-    mask_test[:] = np.nan
-    err_test = np.zeros((len(indN_Tt),len(indLon),len(indLat),size_tw))
-    x_test_OI = np.empty((len(indN_Tt),len(indLon),len(indLat),size_tw))
-    x_test_OI[:] = np.nan
+    x_test    = ndarray_NaN((len(indN_Tt),len(indLon),len(indLat),size_tw))
+    mask_test = ndarray_NaN((len(indN_Tt),len(indLon),len(indLat),size_tw))
+    err_test  = np.zeros((len(indN_Tt),len(indLon),len(indLat),size_tw))
+    x_test_OI = ndarray_NaN((len(indN_Tt),len(indLon),len(indLat),size_tw))
     if include_covariates==True:
-        sst_test      = np.empty((len(indN_Tt),len(indLon),len(indLat),size_tw))
-        sst_test[:]   = np.nan
-        mask_sst_test = np.ones((len(indN_Tt),len(indLon),len(indLat),size_tw))
-        err_sst_test  = np.zeros((len(indN_Tt),len(indLon),len(indLat),size_tw))
-        sss_test      = np.empty((len(indN_Tt),len(indLon),len(indLat),size_tw))
-        sss_test[:]   = np.nan
-        mask_sss_test = np.ones((len(indN_Tt),len(indLon),len(indLat),size_tw))
-        err_sss_test  = np.zeros((len(indN_Tt),len(indLon),len(indLat),size_tw))
+        cov_test      = []
+        mask_cov_test = []
+        err_cov_test  = []
+        for icov in range(N_cov):
+            cov_test.append(ndarray_NaN((len(indN_Tt),len(indLon),len(indLat),size_tw)))
+            mask_cov_test.append(np.ones((len(indN_Tt),len(indLon),len(indLat),size_tw)))
+            err_cov_test.append(np.zeros((len(indN_Tt),len(indLon),len(indLat),size_tw)))
     for k in range(len(indN_Tt)):
         idt = np.arange(indN_Tt[k]-np.floor(size_tw/2.),indN_Tt[k]+np.floor(size_tw/2.)+1,1)
         idt2= (np.where((idt>=0) & (idt<x_orig.shape[0]))[0]).astype(int)
@@ -199,23 +182,25 @@ def flagProcess0(dict_global_Params,lag,opt,type_obs):
         if type_obs=="obs":
             err_test[k,:,:,idt2] = err_orig[idt,:,:]
         # import covariates
+        # import covariates
         if include_covariates==True:
-            sst_test[k,:,:,idt2]    = sst[idt,:,:]
-            sss_test[k,:,:,idt2]    = sss[idt,:,:]
+            for icov in range(N_cov):
+                cov_test[icov][k,:,:,idt2] = cov[icov][idt,:,:]
         mask_test[k,:,:,idt2] = mask_orig[idt,:,:]
     # Build ground truth data test
     gt_test = x_test
     # Add covariates (merge x_test and mask_test with covariates)
     if include_covariates==True:
-       x_test = np.concatenate([x_test,sst_test,sss_test],axis=3)
-       mask_test = np.concatenate([mask_test,mask_sst_test,mask_sss_test],axis=3)
-       err_test = np.concatenate([err_test,err_sst_test,err_sss_test],axis=3)
-       order = np.stack([np.arange(0,size_tw),\
-                 np.arange(size_tw,2*size_tw),\
-                 np.arange(2*size_tw,3*size_tw)]).T.flatten()
-       x_test = x_test[:,:,:,order]
-       mask_test = mask_test[:,:,:,order]
-       err_test = err_test[:,:,:,order]
+        cov_test.insert(0,x_test)
+        mask_cov_test.insert(0,mask_test)
+        err_cov_test.insert(0,err_test)
+        x_test    = np.concatenate(cov_test,axis=3)
+        mask_test = np.concatenate(mask_cov_test,axis=3)
+        err_test  = np.concatenate(err_cov_test,axis=3)
+        order      = np.stack([np.arange(i*size_tw,(i+1)*size_tw) for i in range(0,N_cov+1)]).T.flatten()
+        x_test    = x_test[:,:,:,order]
+        mask_test = mask_test[:,:,:,order]
+        err_test  = err_test[:,:,:,order]
     # Build gappy (and potentially noisy) data test
     x_test_missing = (x_test * mask_test) + err_test
     print('.... # loaded samples: %d '%x_test.shape[0])
@@ -266,10 +251,10 @@ def flagProcess0(dict_global_Params,lag,opt,type_obs):
         x_test_missing  = (x_test_missing - meanTr)/stdTr
         gt_test         = (gt_test - meanTr)/stdTr
     else:
-        index = np.asarray([np.arange(i,3*size_tw,3) for i in range(3)])
-        meanTr          = [np.mean(x_train[:,:,:,index[i,:]]) for i in range(3)]
-        stdTr           = [np.sqrt(np.mean(x_train[:,:,:,index[i,:]]**2)) for i in range(3)]
-        for i in range(3):
+        index = np.asarray([np.arange(i,(N_cov+1)*size_tw,(N_cov+1)) for i in range(N_cov+1)])
+        meanTr          = [np.mean(x_train[:,:,:,index[i,:]]) for i in range(N_cov+1)]
+        stdTr           = [np.sqrt(np.mean(x_train[:,:,:,index[i,:]]**2)) for i in range(N_cov+1)]
+        for i in range(N_cov):
             x_train[:,:,:,index[i,:]]         = (x_train[:,:,:,index[i,:]] - meanTr[i])/stdTr[i]
             x_train_missing[:,:,:,index[i,:]] = (x_train_missing[:,:,:,index[i,:]] - meanTr[i])/stdTr[i]
             x_test[:,:,:,index[i,:]]          = (x_test[:,:,:,index[i,:]] - meanTr[i])/stdTr[i]

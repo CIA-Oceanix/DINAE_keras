@@ -9,7 +9,7 @@ from .mods_NN.flagProcess2_6 import flagProcess2_6 as fl26
 from .mods_NN.flagProcess2_7 import flagProcess2_7 as fl27
 from .mods_NN.flagProcess2_8 import flagProcess2_8 as fl28
 
-def flagProcess2(dict_global_Params,genFilename,x_train,mask_train,x_test,mask_test):
+def define_Models(dict_global_Params,genFilename,x_train,mask_train,x_test,mask_test):
 
     # import Global Parameters
     for key,val in dict_global_Params.items():

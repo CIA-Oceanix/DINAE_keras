@@ -1,6 +1,7 @@
 from dinae import *
 from .tools import *
 from .graphics import *
+from .load_Models_FP                 import load_Models_FP
 from .mods_DIN.eval_Performance      import eval_AEPerformance
 from .mods_DIN.eval_Performance      import eval_InterpPerformance
 from .mods_DIN.def_DINConvAE         import define_DINConvAE
@@ -48,13 +49,7 @@ def flagProcess4_Optim0(dict_global_Params,genFilename,x_train,x_train_missing,m
     IterUpdate     = [0,3,10,15,20,25,30,35,40]
     val_split      = 0.1
     
-    flagLoadModelAE = 0
-    # Here, specify a preloaded AE model
-    fileAEModelInit = dirSAVE+'???.mod'
-    
     iterInit = 0
-    if flagLoadModelAE > 0 :
-        iterInit = 13
     IterTrainAE = 0
     IterUpdateInit = 10000
     
@@ -63,23 +58,9 @@ def flagProcess4_Optim0(dict_global_Params,genFilename,x_train,x_train_missing,m
     x_test_init  = np.copy(x_test_missing)
 
     comptUpdate = 0
-    if flagLoadModelAE > 0 :
-        print('.................. Load Encoder/Decoder '+fileAEModelInit)
-        encoder.load_weights(fileAEModelInit)
-        decoder.load_weights(fileAEModelInit.replace('Encoder','Decoder'))
-
-        comptUpdate = 3
-        NBProjCurrent = NbProjection[comptUpdate-1]
-        print("..... Initialize number of projections in DINCOnvAE model # %d"%(NbProjection[comptUpdate-1]))
-        global_model_FP,global_model_FP_Masked = define_DINConvAE(NbProjection[comptUpdate-1],model_AE,\
-                                                                  x_train.shape,flag_MultiScaleAEModel,\
-                                                                  flagUseMaskinEncoder,size_tw,include_covariates)
-        if flagTrOuputWOMissingData == 1:
-            global_model_FP.compile(loss='mean_squared_error',\
-                                    optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate-1]))
-        else:
-            global_model_FP_Masked.compile(loss='mean_squared_error',\
-                                    optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate-1]))
+    if flagLoadModel == 1:
+        global_model_FP, global_model_FP_Masked =\
+        load_Models_FP(dict_global_Params, genFilename, x_train.shape,fileAEModelInit,[2,1e-3])
 
     # ******************** #
     # Start Learning model #
@@ -93,7 +74,7 @@ def flagProcess4_Optim0(dict_global_Params,genFilename,x_train,x_train_missing,m
             print("..... Update/initialize number of projections in DINCOnvAE model # %d"%(NbProjection[comptUpdate]))
             global_model_FP,global_model_FP_Masked = define_DINConvAE(NbProjection[comptUpdate],model_AE,x_train.shape,\
                                                                           flag_MultiScaleAEModel,flagUseMaskinEncoder,\
-                                                                          size_tw,include_covariates)
+                                                                          size_tw,include_covariates,N_cov)
             if flagTrOuputWOMissingData == 1:
                 global_model_FP.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
             else:
@@ -140,7 +121,7 @@ def flagProcess4_Optim0(dict_global_Params,genFilename,x_train,x_train_missing,m
             mask_train, x_train, x_train_init, x_train_missing,\
             mask_test, x_test, x_test_init, x_test_missing,\
             meanTr, stdTr
-            index = np.arange(0,3*size_tw,3)
+            index = np.arange(0,(N_cov+1)*size_tw,(N_cov+1))
             mask_train      = mask_train[:,:,:,index]
             x_train         = x_train[:,:,:,index]
             x_train_init    = x_train_init[:,:,:,index]
