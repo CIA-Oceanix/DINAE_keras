@@ -31,10 +31,10 @@ def keras_custom_loss_function(size_tw):
         mae = tf.keras.losses.mean_absolute_error(y_true, y_pred)
         filter_gx  = K.constant(np.dstack([-1,0,1,-2,0,2,-1,0,1]*size_tw),shape = [3, 3, size_tw, 1])
         filter_gy  = K.constant(np.dstack([-1,-2,-1,0,0,0,1,2,1]*size_tw),shape = [3, 3, size_tw, 1])
-        Gx_true = K.conv2d(y_true, filter_gx)
-        Gx_pred = K.conv2d(y_pred, filter_gx)
-        Gy_true = K.conv2d(y_true, filter_gy)
-        Gy_pred = K.conv2d(y_pred, filter_gy)
+        Gx_true = K.conv2d(y_true, filter_gx, padding="same")
+        Gx_pred = K.conv2d(y_pred, filter_gx, padding="same")
+        Gy_true = K.conv2d(y_true, filter_gy, padding="same")
+        Gy_pred = K.conv2d(y_pred, filter_gy, padding="same")
         Grad_true = K.sqrt(keras.layers.Add()([keras.layers.Multiply()([Gx_true,Gx_true]),\
                                            keras.layers.Multiply()([Gy_true,Gy_true])]))
         Grad_pred = K.sqrt(keras.layers.Add()([keras.layers.Multiply()([Gx_pred,Gx_pred]),\

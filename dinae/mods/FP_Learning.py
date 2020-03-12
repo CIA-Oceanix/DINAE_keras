@@ -45,6 +45,7 @@ def flagProcess4_Optim0(dict_global_Params,genFilename,x_train,x_train_missing,m
 
     # model fit
     NbProjection   = [0,0,2,2,5,5,10,15,14]
+    NbProjection   = [5,5,5,5,5,5,5,5,5]
     lrUpdate       = [1e-3,1e-4,1e-3,1e-4,1e-5,1e-6,1e-6,1e-5,1e-6]
     IterUpdate     = [0,3,10,15,20,25,30,35,40]
     val_split      = 0.1
@@ -76,10 +77,11 @@ def flagProcess4_Optim0(dict_global_Params,genFilename,x_train,x_train_missing,m
                                                                           flag_MultiScaleAEModel,flagUseMaskinEncoder,\
                                                                           size_tw,include_covariates,N_cov)
             if flagTrOuputWOMissingData == 1:
-                global_model_FP.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
+                #global_model_FP.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
+                global_model_FP.compile(loss=keras_custom_loss_function(size_tw),optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
             else:
-                global_model_FP_Masked.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
-
+                #global_model_FP_Masked.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
+                global_model_FP_Masked.compile(loss=keras_custom_loss_function(size_tw),optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
             if comptUpdate < len(NbProjection)-1:
                 comptUpdate += 1
         
