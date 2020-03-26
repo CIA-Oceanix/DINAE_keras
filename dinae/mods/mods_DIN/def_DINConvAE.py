@@ -16,13 +16,13 @@ def assign_sliced_layer(size_tw,N_cov,x_output):
         return x_proj
     return keras.layers.Lambda(func,arguments={'x_output':x_output})
 
-def error(x1,x2,mask,size_tw,shape,alpha):
+def error(x1,x2,mask,size_tw,shape,alpha,N_cov):
     if x1.shape[3]>x2.shape[3]:
-        index = np.arange(0,3*size_tw,3,dtype='int32')
+        index = np.arange(0,(N_cov+1)*size_tw,N_cov+1,dtype='int32')
         err   = keras.layers.Subtract()([slice_layer(index)(x1),x2])
         err   = keras.layers.Multiply()([err,slice_layer(index)(mask)])
     elif x2.shape[3]>x1.shape[3]:
-        index = np.arange(0,3*size_tw,3,dtype='int32')
+        index = np.arange(0,(N_cov+1)*size_tw,N_cov+1,dtype='int32')
         err   = keras.layers.Subtract()([x1,slice_layer(index)(x2)])
         err   = keras.layers.Multiply()([err,slice_layer(index)(mask)])
     else:
@@ -47,10 +47,7 @@ def define_DINConvAE(NiterProjection,model_AE,shape,\
     mask_ = keras.layers.Lambda(lambda x:1.-x)(mask)
 
     # Iterations of fixed-point projection
-    if include_covariates==False:
-        index = np.arange(0,size_tw)
-    else:
-        index = np.arange(0,3*size_tw,3)   
+    index = np.arange(0,(N_cov+1)*size_tw,N_cov+1)   
     for kk in range(0,NiterProjection):
         x_proj   = model_AE([x,mask])
         x_proj   = keras.layers.Multiply()([x_proj,slice_layer(index)(mask_)])
@@ -101,24 +98,24 @@ def define_DINConvAE(NiterProjection,model_AE,shape,\
         x_proj,x_projLR = global_model_FP_MR([x_input,maskg])
   
     # AE error with x_proj
-    err1 = error(x_proj,x_input,mask,size_tw,shape,1)
+    err1 = error(x_proj,x_input,mask,size_tw,shape,1,N_cov)
     # AE error with x_proj
     if flag_MultiScaleAEModel == 1:
-        err1LR = error(x_projLR,x_input,mask,size_tw,shape,0)
+        err1LR = error(x_projLR,x_input,mask,size_tw,shape,0,N_cov)
         err1   = keras.layers.Add()([err1,err1LR])
     # compute error (x_proj-x_input)**2 with full-1 mask
     if include_covariates==False:
         x_proj2 = model_AE([x_proj,keras.layers.Lambda(lambda x:1.-0.*x)(mask)])
     else: 
-        index   = np.arange(0,3*size_tw,3,dtype='int32')
+        index   = np.arange(0,(N_cov+1)*size_tw,N_cov+1,dtype='int32')
         x_proj.set_shape((x_input.shape[0],x_input.shape[1],\
                           x_input.shape[2],size_tw))
         x_proj  = assign_sliced_layer(size_tw,N_cov,x_proj)(x_input)
         x_proj2 = model_AE([x_proj,keras.layers.Lambda(lambda x:1.-0.*x)(mask)])
-    err2    = error(x_proj,x_proj2,mask,size_tw,shape,0)
+    err2    = error(x_proj,x_proj2,mask,size_tw,shape,0,N_cov)
     # compute error (x_proj-x_input)**2 with full-1 mask
     x_proj3 = model_AE([x_proj,keras.layers.Lambda(lambda x:0.*x)(mask)])
-    err3    = error(x_proj3,x_proj,mask,size_tw,shape,0)
+    err3    = error(x_proj3,x_proj,mask,size_tw,shape,0,N_cov)
     # add all errors
     err    = keras.layers.Add()([err1,err2])
     err    = keras.layers.Add()([err,err3])

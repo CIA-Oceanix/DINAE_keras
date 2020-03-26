@@ -74,7 +74,7 @@ def import_Data(dict_global_Params,type_obs):
 
     # create the time series (additional 4th time dimension)
     x_train    = ndarray_NaN((len(indN_Tr),len(indLon),len(indLat),size_tw))
-    mask_train = ndarray_NaN((len(indN_Tr),len(indLon),len(indLat),size_tw))
+    mask_train = np.zeros((len(indN_Tr),len(indLon),len(indLat),size_tw))
     err_train  = np.zeros((len(indN_Tr),len(indLon),len(indLat),size_tw))
     x_train_OI = ndarray_NaN((len(indN_Tr),len(indLon),len(indLat),size_tw))
     if include_covariates==True:
@@ -159,7 +159,7 @@ def import_Data(dict_global_Params,type_obs):
 
     # create the time series (additional 4th time dimension)
     x_test    = ndarray_NaN((len(indN_Tt),len(indLon),len(indLat),size_tw))
-    mask_test = ndarray_NaN((len(indN_Tt),len(indLon),len(indLat),size_tw))
+    mask_test = np.zeros((len(indN_Tt),len(indLon),len(indLat),size_tw))
     err_test  = np.zeros((len(indN_Tt),len(indLon),len(indLat),size_tw))
     x_test_OI = ndarray_NaN((len(indN_Tt),len(indLon),len(indLat),size_tw))
     if include_covariates==True:
@@ -181,7 +181,6 @@ def import_Data(dict_global_Params,type_obs):
             x_test[k,:,:,idt2]    = x_orig[idt,:,:]
         if type_obs=="obs":
             err_test[k,:,:,idt2] = err_orig[idt,:,:]
-        # import covariates
         # import covariates
         if include_covariates==True:
             for icov in range(N_cov):
@@ -253,15 +252,14 @@ def import_Data(dict_global_Params,type_obs):
     else:
         index = np.asarray([np.arange(i,(N_cov+1)*size_tw,(N_cov+1)) for i in range(N_cov+1)])
         meanTr          = [np.mean(x_train[:,:,:,index[i,:]]) for i in range(N_cov+1)]
-        stdTr           = [np.sqrt(np.mean(x_train[:,:,:,index[i,:]]**2)) for i in range(N_cov+1)]
-        for i in range(N_cov):
-            x_train[:,:,:,index[i,:]]         = (x_train[:,:,:,index[i,:]] - meanTr[i])/stdTr[i]
-            x_train_missing[:,:,:,index[i,:]] = (x_train_missing[:,:,:,index[i,:]] - meanTr[i])/stdTr[i]
-            x_test[:,:,:,index[i,:]]          = (x_test[:,:,:,index[i,:]] - meanTr[i])/stdTr[i]
-            x_test_missing[:,:,:,index[i,:]]  = (x_test_missing[:,:,:,index[i,:]] - meanTr[i])/stdTr[i]
+        stdTr           = [np.sqrt(np.var(x_train[:,:,:,index[i,:]])) for i in range(N_cov+1)]
+        for i in range(N_cov+1):
+            x_train[:,:,:,index[i]]         = (x_train[:,:,:,index[i]] - meanTr[i])/stdTr[i]
+            x_train_missing[:,:,:,index[i]] = (x_train_missing[:,:,:,index[i]] - meanTr[i])/stdTr[i]
+            x_test[:,:,:,index[i]]          = (x_test[:,:,:,index[i]] - meanTr[i])/stdTr[i]
+            x_test_missing[:,:,:,index[i]]  = (x_test_missing[:,:,:,index[i]] - meanTr[i])/stdTr[i]
         gt_train = (gt_train - meanTr[0])/stdTr[0]
         gt_test  = (gt_test - meanTr[0])/stdTr[0]
-
     #print('... Mean and std of training data: %f  -- %f'%tuple(meanTr,stdTr))
 
     if flagDataWindowing == 1:

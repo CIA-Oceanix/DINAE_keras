@@ -40,8 +40,8 @@ assert sys.version_info >= (3,5), "Need Python>=3.6"
 dirs = {}
 
 # Define paths
-datapath="/mnt/groupadiag302/WG8/data/gridded_data_swot_wocorr"
-basepath="/home/AI4OAC-VM8/DINAE"
+datapath="/gpfswork/rech/yrf/uba22to/DATA/"
+basepath="/linkhome/rech/genimt01/uba22to/DINAE/"
 
 print("Initializing DINAE libraries...",flush=True)
 

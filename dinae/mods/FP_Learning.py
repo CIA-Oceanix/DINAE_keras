@@ -45,9 +45,11 @@ def flagProcess4_Optim0(dict_global_Params,genFilename,x_train,x_train_missing,m
 
     # model fit
     NbProjection   = [0,0,2,2,5,5,10,15,14]
-    NbProjection   = [5,5,5,5,5,5,5,5,5]
-    lrUpdate       = [1e-3,1e-4,1e-3,1e-4,1e-5,1e-6,1e-6,1e-5,1e-6]
+    NbProjection   = [5,5,5,5]
+    lrUpdate       = [1e-3,1e-4,1e-5,1e-5,1e-5,1e-6,1e-6,1e-5,1e-6]
+    #lrUpdate       = [1e-3,1e-4,1e-5,1e-6]
     IterUpdate     = [0,3,10,15,20,25,30,35,40]
+    #IterUpdate     = [0,6,15,20]
     val_split      = 0.1
     
     iterInit = 0
@@ -198,12 +200,6 @@ def flagProcess4_Optim0(dict_global_Params,genFilename,x_train,x_train_missing,m
         print('.... explained variance PCA (Tr) : %.2f%%'%(100.*np.cumsum(pca.explained_variance_ratio_)[DimCAE-1]))
         print('.... explained variance PCA (Tt) : %.2f%%'%(100.*exp_var_PCA_Tt))  
 
-        # update training data
-        if iter > IterUpdateInit:
-            # mask = 0(missing data) ; 1(data)
-            x_train_init = mask_train * x_train_missing + (1.-mask_train) * x_train_pred
-            x_test_init  = mask_test  * x_test_missing  + (1.-mask_test)  * x_test_pred
-            
         # save models
         genSuffixModel=save_Models(dict_global_Params,genFilename,NBProjCurrent,encoder,decoder,iter)
  
@@ -241,3 +237,16 @@ def flagProcess4_Optim0(dict_global_Params,genFilename,x_train,x_train_missing,m
             mask_train_wc, x_train_wc, x_train_init_wc, x_train_missing_wc,\
             mask_test_wc, x_test_wc, x_test_init_wc, x_test_missing_wc,\
             meanTr_wc, stdTr_wc
+
+        # update training data
+        if iter > IterUpdateInit:
+            # mask = 0(missing data) ; 1(data)
+            if include_covariates == False: 
+                x_train_init = mask_train * x_train_missing + (1.-mask_train) * x_train_pred
+                x_test_init  = mask_test  * x_test_missing  + (1.-mask_test)  * x_test_pred
+            else:
+                index = np.arange(0,(N_cov+1)*size_tw,(N_cov+1))
+                x_train_init[:,:,:,index] = mask_train[:,:,:,index] * x_train_missing[:,:,:,index] +\
+                                            (1.-mask_train[:,:,:,index]) * x_train_pred
+                x_test_init[:,:,:,index]  = mask_test[:,:,:,index]  * x_test_missing[:,:,:,index]  +\
+                                            (1.-mask_test[:,:,:,index])  * x_test_pred
