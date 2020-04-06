@@ -197,8 +197,8 @@ def flagProcess2_7(dict_global_Params,genFilename,x_train,mask_train,x_test,mask
         model_AE_MR = keras.models.Model([input_data,mask],[x,xLR])
 
     size_tw = int(x_train.shape[3]/(N_cov+1))
-    #model_AE.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=1e-3))
-    model_AE.compile(loss=keras_custom_loss_function(size_tw),optimizer=keras.optimizers.Adam(lr=1e-3))
+    model_AE.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=1e-3))
+    #model_AE.compile(loss=keras_custom_loss_function(size_tw),optimizer=keras.optimizers.Adam(lr=1e-3))
     model_AE.summary()
 
     DimCAE = DimAE

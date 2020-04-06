@@ -81,6 +81,7 @@ import keras
 from keras.constraints import Constraint
 from keras import backend as K
 from .mods.import_Datasets    import *
+from .mods.import_Datasets_xp import *
 from .mods.define_Models      import *
 from .mods.define_Classifiers import *
 from .mods.FP_Learning        import *

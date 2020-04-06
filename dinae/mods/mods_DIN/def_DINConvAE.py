@@ -104,14 +104,11 @@ def define_DINConvAE(NiterProjection,model_AE,shape,\
         err1LR = error(x_projLR,x_input,mask,size_tw,shape,0,N_cov)
         err1   = keras.layers.Add()([err1,err1LR])
     # compute error (x_proj-x_input)**2 with full-1 mask
-    if include_covariates==False:
-        x_proj2 = model_AE([x_proj,keras.layers.Lambda(lambda x:1.-0.*x)(mask)])
-    else: 
+    if include_covariates==True:
         index   = np.arange(0,(N_cov+1)*size_tw,N_cov+1,dtype='int32')
-        x_proj.set_shape((x_input.shape[0],x_input.shape[1],\
-                          x_input.shape[2],size_tw))
-        x_proj  = assign_sliced_layer(size_tw,N_cov,x_proj)(x_input)
-        x_proj2 = model_AE([x_proj,keras.layers.Lambda(lambda x:1.-0.*x)(mask)])
+        x_proj.set_shape((x_input.shape[0],x_input.shape[1], x_input.shape[2],size_tw))
+        x_proj = assign_sliced_layer(size_tw,N_cov,x_proj)(x_input)
+    x_proj2 = model_AE([x_proj,keras.layers.Lambda(lambda x:1.-0.*x)(mask)])
     err2    = error(x_proj,x_proj2,mask,size_tw,shape,0,N_cov)
     # compute error (x_proj-x_input)**2 with full-1 mask
     x_proj3 = model_AE([x_proj,keras.layers.Lambda(lambda x:0.*x)(mask)])

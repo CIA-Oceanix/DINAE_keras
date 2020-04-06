@@ -20,7 +20,7 @@ def ndarray_NaN(shape):
     arr[:] = np.nan
     return arr
 
-def import_Data(dict_global_Params,type_obs):
+def import_Data_xp(dict_global_Params,type_obs):
 
     # import Global Parameters
     for key,val in dict_global_Params.items():
@@ -43,11 +43,9 @@ def import_Data(dict_global_Params,type_obs):
     nc_data_mod = Dataset(fileMod,'r')
     nc_data_obs = Dataset(fileObs,'r')    
     x_orig      = Imputing_NaN_3d(np.copy(nc_data_mod['ssh'][:,indLon,indLat]))
-    # masking strategie differs according to flagTrWMissingData flag 
+    # masking strategie: mask_orig (true mask)
     mask_orig         = np.copy(nc_data_obs['ssh_mod'][:,indLon,indLat])
     mask_orig         = np.asarray(~np.isnan(mask_orig))
-    if flagTrWMissingData==0:
-        mask_orig[indN_Tr,:,:]  = 1
     if type_obs=="obs":
         noisy_obs = np.copy(nc_data_obs['ssh_obs'][:,indLon,indLat])
         obs       = np.copy(nc_data_obs['ssh_mod'][:,indLon,indLat])
@@ -104,10 +102,7 @@ def import_Data(dict_global_Params,type_obs):
                 cov_train[icov][k,:,:,idt2] = cov[icov][idt,:,:]
         mask_train[k,:,:,idt2] = mask_orig[idt,:,:]
     # Build ground truth data train
-    if flagTrWMissingData==2:
-        gt_train = (x_train * mask_train) + err_train
-    else:
-        gt_train = x_train
+    gt_train = x_train
     # Add covariates (merge x_train and mask_train with covariates)
     if include_covariates==True:
         cov_train.insert(0,x_train)
@@ -126,9 +121,18 @@ def import_Data(dict_global_Params,type_obs):
         gt_train        = np.delete(gt_train,id_rm,axis=0)
         x_train         = np.delete(x_train,id_rm,axis=0)
         x_train_missing = np.delete(x_train_missing,id_rm,axis=0)
+        err_train       = np.delete(err_train,id_rm,axis=0)
         mask_train      = np.delete(mask_train,id_rm,axis=0)
         x_train_OI      = np.delete(x_train_OI,id_rm,axis=0)
     print('.... # loaded samples: %d '%x_train.shape[0])
+
+    # create an artificial training dataset by adding
+    print(gt_train.shape)
+    gt_train        = np.concatenate((gt_train,gt_train))
+    x_train_missing = np.concatenate((x_train_missing,x_train+err_train))
+    x_train         = np.concatenate((x_train,x_train))
+    mask_train      = np.concatenate((mask_train,np.ones(mask_train.shape)))
+    x_train_OI      = np.concatenate((x_train_OI,x_train_OI))
 
     # remove patch if no SSH data
     ss              = np.sum( np.sum( np.sum( x_train < -100 , axis = -1) , axis = -1 ) , axis = -1)
@@ -148,13 +152,14 @@ def import_Data(dict_global_Params,type_obs):
     mask_train      = mask_train[ind[0],:,:,:]
     if flagloadOIData == 1:
         x_train_OI = x_train_OI[ind[0],:,:,:]
-    y_train = np.ones((x_train.shape[0]))
+
+    y_train         = np.ones(x_train.shape[0])
 
     if flagloadOIData:
         print("....... # of training patches: %d/%d"%(x_train.shape[0],x_train_OI.shape[0]))
     else:
         print("....... # of training patches: %d"%(x_train.shape[0]))
-      
+
     # *** TEST DATASET ***#
     print("2) .... Load SST dataset (test data): "+fileObs)      
 
