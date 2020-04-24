@@ -47,8 +47,10 @@ def flagProcess4_Optim0(dict_global_Params,genFilename,x_train,x_train_missing,m
     NbProjection   = [0,0,2,2,5,5,10,15,14]
     NbProjection   = [5,5,5,5]
     lrUpdate       = [1e-3,1e-4,1e-5,1e-5,1e-5,1e-6,1e-6,1e-5,1e-6]
-    lrUpdate       = [1e-4,1e-5,1e-6,1e-7]
-    #lrUpdate       = [1e-3,1e-4,1e-5,1e-6]
+    if flagTrOuputWOMissingData==0:
+        lrUpdate   = [1e-4,1e-5,1e-6,1e-7]
+    else:
+        lrUpdate   = [1e-3,1e-4,1e-5,1e-6]
     IterUpdate     = [0,3,10,15,20,25,30,35,40]
     #IterUpdate     = [0,6,15,20]
     val_split      = 0.1

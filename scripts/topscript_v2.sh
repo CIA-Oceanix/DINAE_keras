@@ -1,9 +1,10 @@
 #!/bin/sh
 
-sbatch mono_gpu.slurm mod 0 False
-sbatch mono_gpu.slurm mod 1 False
-sbatch mono_gpu.slurm mod 2 False
-sbatch mono_gpu.slurm mod 0 True
-sbatch mono_gpu.slurm mod 1 True
-sbatch mono_gpu.slurm mod 2 True
-
+tobs=${1}
+domain="GULFSTREAM"
+sbatch mono_gpu.slurm ${tobs} 0 False ${domain}
+sbatch mono_gpu.slurm ${tobs} 1 False ${domain}
+sbatch mono_gpu.slurm ${tobs} 2 False ${domain}
+sbatch mono_gpu.slurm ${tobs} 0 True  ${domain}
+sbatch mono_gpu.slurm ${tobs} 1 True  ${domain}
+sbatch mono_gpu.slurm ${tobs} 2 True  ${domain}

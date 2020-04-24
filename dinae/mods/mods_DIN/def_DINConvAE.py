@@ -64,8 +64,8 @@ def define_DINConvAE(NiterProjection,model_AE,shape,\
         x_proj = model_AE([x,mask]) 
         global_model_FP    = keras.models.Model([x_input,mask],[x_proj])
 
-    x_input         = keras.layers.Input((shape[1],shape[2],shape[3]))
-    mask            = keras.layers.Input((shape[1],shape[2],shape[3]))
+    #x_input         = keras.layers.Input((shape[1],shape[2],shape[3]))
+    #mask            = keras.layers.Input((shape[1],shape[2],shape[3]))
 
     # randomly sample an additionnal missing data mask
     # additive noise + spatial smoothing
@@ -104,15 +104,20 @@ def define_DINConvAE(NiterProjection,model_AE,shape,\
         err1LR = error(x_projLR,x_input,mask,size_tw,shape,0,N_cov)
         err1   = keras.layers.Add()([err1,err1LR])
     # compute error (x_proj-x_input)**2 with full-1 mask
-    if include_covariates==True:
-        index   = np.arange(0,(N_cov+1)*size_tw,N_cov+1,dtype='int32')
-        x_proj.set_shape((x_input.shape[0],x_input.shape[1], x_input.shape[2],size_tw))
-        x_proj = assign_sliced_layer(size_tw,N_cov,x_proj)(x_input)
-    x_proj2 = model_AE([x_proj,keras.layers.Lambda(lambda x:1.-0.*x)(mask)])
-    err2    = error(x_proj,x_proj2,mask,size_tw,shape,0,N_cov)
+    x_proj_ = x_proj
+    if include_covariates==False:
+        x_proj2 = model_AE([x_proj_,keras.layers.Lambda(lambda x:1.-0.*x)(mask)])
+    else:
+        index  = np.arange(0,(N_cov+1)*size_tw,N_cov+1,dtype='int32')
+        x_proj_.set_shape((x_input.shape[0],x_input.shape[1],\
+                          x_input.shape[2],size_tw))
+        x_proj_ = assign_sliced_layer(size_tw,N_cov,x_proj_)(x_input)
+        x_proj_ = x_input
+        x_proj2 = model_AE([x_proj_,keras.layers.Lambda(lambda x:1.-0.*x)(mask)])
+    err2    = error(x_proj_,x_proj2,mask,size_tw,shape,0,N_cov)
     # compute error (x_proj-x_input)**2 with full-1 mask
-    x_proj3 = model_AE([x_proj,keras.layers.Lambda(lambda x:0.*x)(mask)])
-    err3    = error(x_proj3,x_proj,mask,size_tw,shape,0,N_cov)
+    x_proj3 = model_AE([x_proj_,keras.layers.Lambda(lambda x:0.*x)(mask)])
+    err3    = error(x_proj3,x_proj_,mask,size_tw,shape,0,N_cov)
     # add all errors
     err    = keras.layers.Add()([err1,err2])
     err    = keras.layers.Add()([err,err3])
