@@ -6,7 +6,7 @@ Created on Thu Aug  8 08:21:45 2019
 @author: rfablet, mbeaucha
 """
 
-from dinae import *
+from dinae_keras import *
 
 def ifelse(cond1,val1,val2):
     if cond1==True:

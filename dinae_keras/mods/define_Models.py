@@ -1,4 +1,4 @@
-from dinae import *
+from dinae_keras import *
 from .mods_NN.flagProcess2_0 import flagProcess2_0 as fl20
 from .mods_NN.flagProcess2_1 import flagProcess2_1 as fl21
 from .mods_NN.flagProcess2_2 import flagProcess2_2 as fl22

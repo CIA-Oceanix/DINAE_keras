@@ -1,4 +1,4 @@
-from dinae import *
+from dinae_keras import *
 
 def Imputing_NaN(data, invalid=None):
     """

@@ -1,4 +1,4 @@
-from dinae import *
+from dinae_keras import *
 
 def slice_layer(index):
     def func(x_input):

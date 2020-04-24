@@ -1,4 +1,4 @@
-from dinae import *
+from dinae_keras import *
 
 # functions for the evaluation of interpolation and auto-encoding performance
 def eval_AEPerformance(x_train,rec_AE_Tr,x_test,rec_AE_Tt):

@@ -1,4 +1,4 @@
-from dinae import *
+from dinae_keras import *
 
 def define_GradModel(model_AE,shape,flagGradModel=0):
 

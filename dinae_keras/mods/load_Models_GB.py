@@ -1,4 +1,4 @@
-from dinae import *
+from dinae_keras import *
 from .mods_DIN.def_GradModel         import define_GradModel
 from .mods_DIN.def_GradDINConvAE     import define_GradDINConvAE
 

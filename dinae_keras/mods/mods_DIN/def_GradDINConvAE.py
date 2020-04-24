@@ -1,4 +1,4 @@
-from dinae import *
+from dinae_keras import *
  
 def error(x1,x2,mask,shape,alpha):
     err   = keras.layers.Subtract()([x1,x2])

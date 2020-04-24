@@ -41,9 +41,9 @@ dirs = {}
 
 # Define paths
 datapath="/gpfswork/rech/yrf/uba22to/DATA/"
-basepath="/linkhome/rech/genimt01/uba22to/DINAE/"
+basepath="/linkhome/rech/genimt01/uba22to/DINAE_keras/"
 
-print("Initializing DINAE libraries...",flush=True)
+print("Initializing DINAE_keras libraries...",flush=True)
 
 ##################################
 # Scientific and mapping

@@ -1,6 +1,6 @@
-from dinae import *
+from dinae_keras import *
 
-def flagProcess2_5(dict_global_Params,genFilename,x_train,mask_train,x_test,mask_test):
+def flagProcess2_3(dict_global_Params,genFilename,x_train,mask_train,x_test,mask_test):
 
     # import Global Parameters
     for key,val in dict_global_Params.items():
@@ -9,16 +9,20 @@ def flagProcess2_5(dict_global_Params,genFilename,x_train,mask_train,x_test,mask
     Wpool_i = np.floor(  (np.floor((x_train.shape[1]-2)/2)-2)/2 ).astype(int) 
     Wpool_j = np.floor(  (np.floor((x_train.shape[2]-2)/2)-2)/2 ).astype(int)
     
-    input_layer = keras.layers.Input(shape=(x_train.shape[1],x_train.shape[2],x_train.shape[3]))
+    input_data  = keras.layers.Input(shape=(x_train.shape[1],x_train.shape[2],x_train.shape[3]))
+    mask        = keras.layers.Input(shape=(x_train.shape[1],x_train.shape[2],x_train.shape[3]))
   
-    x = keras.layers.Conv2D(DimAE,(3,3),activation='relu', padding='valid',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(input_layer)            
+    x = keras.layers.Conv2D(DimAE,(3,3),activation='relu', padding='valid',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(input_data)            
     x = keras.layers.Dropout(dropout)(x)
     x = keras.layers.AveragePooling2D((2,2), padding='valid')(x)
     x = keras.layers.Conv2D(2*DimAE,(3,3),activation='relu', padding='valid',kernel_regularizer=keras.regularizers.l2(wl2))(x)
     x = keras.layers.Dropout(dropout)(x)
     x = keras.layers.AveragePooling2D((2,2), padding='valid')(x)
-    x = keras.layers.Conv2D(DimAE,(Wpool_i,Wpool_j),activation='linear', padding='valid',kernel_regularizer=keras.regularizers.l2(wl2))(x)
-    encoder    = keras.models.Model(input_layer,x)
+    x = keras.layers.Conv2D(4*DimAE,(Wpool_i,Wpool_j),activation='relu', padding='valid',kernel_regularizer=keras.regularizers.l2(wl2))(x)
+    x = keras.layers.Dropout(dropout)(x)
+    x = keras.layers.Conv2D(DimAE,(1,1),activation='linear', padding='valid',kernel_regularizer=keras.regularizers.l2(wl2))(x)
+    
+    encoder    = keras.models.Model([input_data,mask],x)
              
     decoder_input = keras.layers.Input(shape=(1,1,DimAE))
   
@@ -48,9 +52,8 @@ def flagProcess2_5(dict_global_Params,genFilename,x_train,mask_train,x_test,mask
       
         x = keras.layers.Dropout(dropout)(x)
         x = keras.layers.Conv2D(x_train.shape[3],(1,1),activation='linear', padding='same',kernel_regularizer=keras.regularizers.l2(wl2))(x)
-    #x = keras.layers.Reshape((x_train.shape[1],x_train.shape[2]))(x)
+    decoder       = keras.models.Model(decoder_input,x)
   
-    decoder       = keras.models.Model(decoder_input,x)    
     encoder.summary()
     decoder.summary()
   
@@ -62,4 +65,4 @@ def flagProcess2_5(dict_global_Params,genFilename,x_train,mask_train,x_test,mask
     model_AE.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=1e-3))
     model_AE.summary()
 
-    return genFilename, encoder, decoder, model_AE, DimCAE
+    return genFilename, encoder, decoder, model_AE, DimCAE    

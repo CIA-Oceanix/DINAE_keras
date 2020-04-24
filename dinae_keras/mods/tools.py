@@ -1,4 +1,4 @@
-from dinae import *
+from dinae_keras import *
 
 # function to create recursive paths
 def mk_dir_recursive(dir_path):

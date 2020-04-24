@@ -1,4 +1,4 @@
-from dinae import *
+from dinae_keras import *
 
 def flagProcess3(dict_global_Params,y_train):
 

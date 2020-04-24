@@ -1,4 +1,4 @@
-from dinae import *
+from dinae_keras import *
 
 def save_Models(dict_global_Params,genFilename,NBProjCurrent,encoder,decoder,iter,*args):   
 

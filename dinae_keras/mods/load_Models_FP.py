@@ -1,4 +1,4 @@
-from dinae import *
+from dinae_keras import *
 from .mods_DIN.def_DINConvAE         import define_DINConvAE
 
 def load_Models_FP(dict_global_Params, genFilename, shape, fileAEModelInit, params):

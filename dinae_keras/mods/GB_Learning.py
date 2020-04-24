@@ -1,16 +1,15 @@
-from dinae import *
+from dinae_keras import *
 from .tools import *
 from .graphics import *
-from .load_Models_FP                 import load_Models_FP
+from .load_Models_GB                 import load_Models_GB
 from .mods_DIN.eval_Performance      import eval_AEPerformance
 from .mods_DIN.eval_Performance      import eval_InterpPerformance
-from .mods_DIN.def_DINConvAE         import define_DINConvAE
 from .mods_DIN.def_GradModel         import define_GradModel
 from .mods_DIN.def_GradDINConvAE     import define_GradDINConvAE
 from .mods_DIN.plot_Figs             import plot_Figs
 from .mods_DIN.save_Models           import save_Models
 
-def flagProcess4_Optim0(dict_global_Params,genFilename,x_train,x_train_missing,mask_train,gt_train,\
+def flagProcess4_Optim1(dict_global_Params,genFilename,x_train,x_train_missing,mask_train,gt_train,\
                         meanTr,stdTr,x_test,x_test_missing,mask_test,gt_test,lday_test,x_train_OI,x_test_OI,encoder,decoder,model_AE,DimCAE):
 
     # import Global Parameters
@@ -29,7 +28,7 @@ def flagProcess4_Optim0(dict_global_Params,genFilename,x_train,x_train_missing,m
     rec_PCA_Tt       = pca.transform(np.reshape(gt_test,(gt_test.shape[0],gt_test.shape[1]*gt_test.shape[2]*gt_test.shape[3])))
     rec_PCA_Tt[:,DimCAE:] = 0.
     rec_PCA_Tt       = pca.inverse_transform(rec_PCA_Tt)
-    mse_PCA_Tt       = np.mean( (rec_PCA_Tt - gt_test.reshape((gt_test.shape[0],gt_test.shape[1]*gt_test.shape[2]*gt_test.shape[3])))**2 )
+    mse_PCA_Tt       = np.mean( (rec_PCA_Tt - x_test.reshape((gt_test.shape[0],gt_test.shape[1]*gt_test.shape[2]*gt_test.shape[3])))**2 )
     var_Tt           = np.mean( (gt_test-np.mean(gt_train,axis=0))** 2 )
     exp_var_PCA_Tt   = 1. - mse_PCA_Tt / var_Tt
     
@@ -44,15 +43,10 @@ def flagProcess4_Optim0(dict_global_Params,genFilename,x_train,x_train_missing,m
     # ***************** #
 
     # model fit
-    NbProjection   = [0,0,2,2,5,5,10,15,14]
-    NbProjection   = [5,5,5,5]
-    lrUpdate       = [1e-3,1e-4,1e-5,1e-5,1e-5,1e-6,1e-6,1e-5,1e-6]
-    if flagTrOuputWOMissingData==0:
-        lrUpdate   = [1e-4,1e-5,1e-6,1e-7]
-    else:
-        lrUpdate   = [1e-3,1e-4,1e-5,1e-6]
-    IterUpdate     = [0,3,10,15,20,25,30,35,40]
-    #IterUpdate     = [0,6,15,20]
+    NbProjection   = [0,0,0,0,0,0,0,0]
+    NbGradIter     = [0,1,2,5,5,8,12,12]
+    IterUpdate     = [0,3,10,15,20,30,35,40]
+    lrUpdate       = [1e-3,1e-5,1e-4,1e-5,1e-5,1e-5,1e-6,1e-5,1e-6]
     val_split      = 0.1
     
     iterInit = 0
@@ -60,13 +54,11 @@ def flagProcess4_Optim0(dict_global_Params,genFilename,x_train,x_train_missing,m
     IterUpdateInit = 10000
     
     ## initialization
-    x_train_init = np.copy(x_train_missing)
-    x_test_init  = np.copy(x_test_missing)
-
-    comptUpdate = 0
     if flagLoadModel == 1:
-        global_model_FP, global_model_FP_Masked =\
-        load_Models_FP(dict_global_Params, genFilename, x_train.shape,fileAEModelInit,[2,1e-3])
+        global_model_Grad, global_model_Grad_Masked =\
+        load_Models_GB(dict_global_Params, genFilename, x_train.shape, fileAEModelInit, [2,2,1e-3])
+    else:
+        gradModel,gradMaskModel = define_GradModel(model_AE,x_train.shape,flagGradModel)
 
     # ******************** #
     # Start Learning model #
@@ -75,43 +67,48 @@ def flagProcess4_Optim0(dict_global_Params,genFilename,x_train,x_train_missing,m
     print("..... Start learning AE model %d FP/Grad %d"%(flagAEType,flagOptimMethod))
     for iter in range(iterInit,Niter):
         if iter == IterUpdate[comptUpdate]:
-            # update DINConvAE model
+            if (iter > IterTrainAE) & (flagLoadModelAE == 1):
+                print("..... Make trainable AE parameters")
+                for layer in encoder.layers:
+                    layer.trainable = True
+                for layer in decoder.layers:
+                    layer.trainable = True
+        
             NBProjCurrent = NbProjection[comptUpdate]
-            print("..... Update/initialize number of projections in DINCOnvAE model # %d"%(NbProjection[comptUpdate]))
-            global_model_FP,global_model_FP_Masked = define_DINConvAE(NbProjection[comptUpdate],model_AE,x_train.shape,\
-                                                                          flag_MultiScaleAEModel,flagUseMaskinEncoder,\
-                                                                          size_tw,include_covariates,N_cov)
+            NBGradCurrent = NbGradIter[comptUpdate]
+            print("..... Update/initialize number of projections/Graditer in GradConvAE model # %d/%d"%(NbProjection[comptUpdate],NbGradIter[comptUpdate]))
+            global_model_Grad,global_model_Grad_Masked = define_GradDINConvAE(NbProjection[comptUpdate],NbGradIter[comptUpdate],model_AE,x_train.shape,gradModel,gradMaskModel,flagGradModel)
             if flagTrOuputWOMissingData == 1:
-                #global_model_FP.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
-                global_model_FP.compile(loss=keras_custom_loss_function(size_tw),optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
+                #global_model_Grad.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
+                global_model_Grad.compile(loss=keras_custom_loss_function(size_tw),optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
             else:
-                global_model_FP_Masked.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
-                #global_model_FP_Masked.compile(loss=keras_custom_loss_function(size_tw),optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
-            if comptUpdate < len(NbProjection)-1:
-                comptUpdate += 1
+                #global_model_Grad_Masked.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
+                global_model_Grad.compile(loss=keras_custom_loss_function(size_tw),optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
+        
+        if comptUpdate < len(NbProjection)-1:
+            comptUpdate += 1
         
         # gradient descent iteration            
         if flagTrOuputWOMissingData == 1:
-            history = global_model_FP.fit([x_train_init,mask_train],gt_train,
+            history = global_model_Grad.fit([x_train_init,mask_train],gt_train,
                   batch_size=batch_size,
                   epochs = NbEpoc,
-                  verbose = 1, 
+                  verbose = 1,
                   validation_split=val_split)
         else:
-            history = global_model_FP_Masked.fit([x_train_init,mask_train],[np.zeros((x_train_init.shape[0],1))],
+            history = global_model_Grad_Masked.fit([x_train_init,mask_train],[np.zeros((x_train_init.shape[0],1))],
                   batch_size=batch_size,
                   epochs = NbEpoc,
-                  verbose = 1, 
+                  verbose = 1,
                   validation_split=val_split)
 
         # *********************** #
         # Prediction on test data #
         # *********************** #
 
-        # trained full-model
-        x_train_pred    = global_model_FP.predict([x_train_init,mask_train])
-        x_test_pred     = global_model_FP.predict([x_test_init,mask_test])
-
+        x_train_pred    = global_model_Grad.predict([x_train_init,mask_train])
+        x_test_pred     = global_model_Grad.predict([x_test_init,mask_test])
+    
         # trained AE applied to gap-free data
         if flagUseMaskinEncoder == 1:
             rec_AE_Tr     = model_AE.predict([x_train,np.zeros((mask_train.shape))])
@@ -244,7 +241,7 @@ def flagProcess4_Optim0(dict_global_Params,genFilename,x_train,x_train_missing,m
         # update training data
         if iter > IterUpdateInit:
             # mask = 0(missing data) ; 1(data)
-            if include_covariates == False: 
+            if include_covariates == False:
                 x_train_init = mask_train * x_train_missing + (1.-mask_train) * x_train_pred
                 x_test_init  = mask_test  * x_test_missing  + (1.-mask_test)  * x_test_pred
             else:
@@ -253,3 +250,4 @@ def flagProcess4_Optim0(dict_global_Params,genFilename,x_train,x_train_missing,m
                                             (1.-mask_train[:,:,:,index]) * x_train_pred
                 x_test_init[:,:,:,index]  = mask_test[:,:,:,index]  * x_test_missing[:,:,:,index]  +\
                                             (1.-mask_test[:,:,:,index])  * x_test_pred
+
