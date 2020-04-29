@@ -207,7 +207,7 @@ def flagProcess4_Optim1(dict_global_Params,genFilename,x_train,x_train_missing,m
         saved_path = dirSAVE+'/saved_path_%03d'%(iter)+'_FP_'+suf1+'_'+suf2+'.pickle'
         if flagloadOIData == 1:
             # generate some plots
-            plot_Figs(dirSAVE,genFilename,genSuffixModel,\
+            plot_Figs(dirSAVE,domain,genFilename,genSuffixModel,\
                   (gt_train*stdTr)+meanTr+x_train_OI,(x_train_missing*stdTr)+meanTr+x_train_OI,mask_train,\
                   (x_train_pred*stdTr)+meanTr+x_train_OI,(rec_AE_Tr*stdTr)+meanTr+x_train_OI,\
                   (gt_test*stdTr)+meanTr+x_test_OI,(x_test_missing*stdTr)+meanTr+x_test_OI,mask_test,lday_test,\
@@ -219,7 +219,7 @@ def flagProcess4_Optim1(dict_global_Params,genFilename,x_train,x_train_missing,m
 
         else:
             # generate some plots
-            plot_Figs(dirSAVE,genFilename,genSuffixModel,\
+            plot_Figs(dirSAVE,domain,genFilename,genSuffixModel,\
                   (gt_train*stdTr)+meanTr,(x_train_missing*stdTr)+meanTr,mask_train,\
                   (x_train_pred*stdTr)+meanTr,(rec_AE_Tr*stdTr)+meanTr,\
                   (gt_test*stdTr)+meanTr,(x_test_missing*stdTr)+meanTr,mask_test,lday_test,\

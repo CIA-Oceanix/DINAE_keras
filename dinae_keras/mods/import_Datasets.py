@@ -34,23 +34,27 @@ def import_Data(dict_global_Params,type_obs):
     indN_Tr = np.delete(range(365),indN_Tt)
     lday_test=[ datetime.strftime(datetime.strptime("2012-10-01",'%Y-%m-%d')\
                           + timedelta(days=np.float64(i)),"%Y-%m-%d") for i in indN_Tt ]
-    indLat     = np.arange(0,200)
-    indLon     = np.arange(0,200)         
- 
+
+    if domain=="OSMOSIS":
+        indLat     = np.arange(0,200)
+        indLon     = np.arange(0,160)         
+    else:
+        indLat     = np.arange(0,200)
+        indLon     = np.arange(0,200)     
     #*** TRAINING DATASET ***#
     print("1) .... Load SSH dataset (training data): "+fileObs)
 
     nc_data_mod = Dataset(fileMod,'r')
     nc_data_obs = Dataset(fileObs,'r')    
-    x_orig      = Imputing_NaN_3d(np.copy(nc_data_mod['ssh'][:,indLon,indLat]))
+    x_orig      = Imputing_NaN_3d(np.copy(nc_data_mod['ssh'][:,indLat,indLon]))
     # masking strategie differs according to flagTrWMissingData flag 
-    mask_orig         = np.copy(nc_data_obs['ssh_mod'][:,indLon,indLat])
+    mask_orig         = np.copy(nc_data_obs['ssh_mod'][:,indLat,indLon])
     mask_orig         = np.asarray(~np.isnan(mask_orig))
     if flagTrWMissingData==0:
         mask_orig[indN_Tr,:,:]  = 1
     if type_obs=="obs":
-        noisy_obs = np.copy(nc_data_obs['ssh_obs'][:,indLon,indLat])
-        obs       = np.copy(nc_data_obs['ssh_mod'][:,indLon,indLat])
+        noisy_obs = np.copy(nc_data_obs['ssh_obs'][:,indLat,indLon])
+        obs       = np.copy(nc_data_obs['ssh_mod'][:,indLat,indLon])
         err_orig  = noisy_obs - obs
         err_orig = np.where(np.isnan(err_orig), 0, err_orig)
     nc_data_mod.close()
@@ -59,7 +63,7 @@ def import_Data(dict_global_Params,type_obs):
     if flagloadOIData == 1:
         print(".... Load OI SSH dataset (training data): "+fileOI)
         nc_data    = Dataset(fileOI,'r')
-        x_OI = Imputing_NaN_3d(np.copy(nc_data['ssh_mod'][:,indLon,indLat]))
+        x_OI = Imputing_NaN_3d(np.copy(nc_data['ssh_mod'][:,indLat,indLon]))
         nc_data.close()
     # load covariates
     if include_covariates==True:
@@ -67,22 +71,22 @@ def import_Data(dict_global_Params,type_obs):
         for icov in range(N_cov):
             nc_data_cov = Dataset(lfile_cov[icov],'r')
             print(".... Load "+lid_cov[icov]+" dataset (training data): "+lfile_cov[icov])
-            cov.append(Imputing_NaN_3d(np.copy(nc_data_cov[lname_cov[icov]][:,indLon,indLat])))
+            cov.append(Imputing_NaN_3d(np.copy(nc_data_cov[lname_cov[icov]][:,indLat,indLon])))
             nc_data_cov.close()
 
     # create the time series (additional 4th time dimension)
-    x_train    = ndarray_NaN((len(indN_Tr),len(indLon),len(indLat),size_tw))
-    mask_train = np.zeros((len(indN_Tr),len(indLon),len(indLat),size_tw))
-    err_train  = np.zeros((len(indN_Tr),len(indLon),len(indLat),size_tw))
-    x_train_OI = ndarray_NaN((len(indN_Tr),len(indLon),len(indLat),size_tw))
+    x_train    = ndarray_NaN((len(indN_Tr),len(indLat),len(indLon),size_tw))
+    mask_train = np.zeros((len(indN_Tr),len(indLat),len(indLon),size_tw))
+    err_train  = np.zeros((len(indN_Tr),len(indLat),len(indLon),size_tw))
+    x_train_OI = ndarray_NaN((len(indN_Tr),len(indLat),len(indLon),size_tw))
     if include_covariates==True:
         cov_train      = []
         mask_cov_train = []
         err_cov_train  = []
         for icov in range(N_cov):
-            cov_train.append(ndarray_NaN((len(indN_Tr),len(indLon),len(indLat),size_tw)))
-            mask_cov_train.append(np.ones((len(indN_Tr),len(indLon),len(indLat),size_tw)))
-            err_cov_train.append(np.zeros((len(indN_Tr),len(indLon),len(indLat),size_tw)))
+            cov_train.append(ndarray_NaN((len(indN_Tr),len(indLat),len(indLon),size_tw)))
+            mask_cov_train.append(np.ones((len(indN_Tr),len(indLat),len(indLon),size_tw)))
+            err_cov_train.append(np.zeros((len(indN_Tr),len(indLat),len(indLon),size_tw)))
     id_rm = []
     for k in range(len(indN_Tr)):
         idt = np.arange(indN_Tr[k]-np.floor(size_tw/2.),indN_Tr[k]+np.floor(size_tw/2.)+1,1)
@@ -159,18 +163,18 @@ def import_Data(dict_global_Params,type_obs):
     print("2) .... Load SST dataset (test data): "+fileObs)      
 
     # create the time series (additional 4th time dimension)
-    x_test    = ndarray_NaN((len(indN_Tt),len(indLon),len(indLat),size_tw))
-    mask_test = np.zeros((len(indN_Tt),len(indLon),len(indLat),size_tw))
-    err_test  = np.zeros((len(indN_Tt),len(indLon),len(indLat),size_tw))
-    x_test_OI = ndarray_NaN((len(indN_Tt),len(indLon),len(indLat),size_tw))
+    x_test    = ndarray_NaN((len(indN_Tt),len(indLat),len(indLon),size_tw))
+    mask_test = np.zeros((len(indN_Tt),len(indLat),len(indLon),size_tw))
+    err_test  = np.zeros((len(indN_Tt),len(indLat),len(indLon),size_tw))
+    x_test_OI = ndarray_NaN((len(indN_Tt),len(indLat),len(indLon),size_tw))
     if include_covariates==True:
         cov_test      = []
         mask_cov_test = []
         err_cov_test  = []
         for icov in range(N_cov):
-            cov_test.append(ndarray_NaN((len(indN_Tt),len(indLon),len(indLat),size_tw)))
-            mask_cov_test.append(np.ones((len(indN_Tt),len(indLon),len(indLat),size_tw)))
-            err_cov_test.append(np.zeros((len(indN_Tt),len(indLon),len(indLat),size_tw)))
+            cov_test.append(ndarray_NaN((len(indN_Tt),len(indLat),len(indLon),size_tw)))
+            mask_cov_test.append(np.ones((len(indN_Tt),len(indLat),len(indLon),size_tw)))
+            err_cov_test.append(np.zeros((len(indN_Tt),len(indLat),len(indLon),size_tw)))
     for k in range(len(indN_Tt)):
         idt = np.arange(indN_Tt[k]-np.floor(size_tw/2.),indN_Tt[k]+np.floor(size_tw/2.)+1,1)
         idt2= (np.where((idt>=0) & (idt<x_orig.shape[0]))[0]).astype(int)

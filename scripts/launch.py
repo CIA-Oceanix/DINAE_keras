@@ -26,25 +26,25 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # list of global parameters (comments to add)
-    fileMod                     = datapath+"/"+domain+"/maps/NATL60-CJM165_ssh_y2013.1y.nc" # Model file
-    fileOI                      = datapath+"/"+domain+"/oi/ssh_NATL60_4nadir.nc"            # OI file
+    fileMod                     = datapath+domain+"/ref/NATL60-CJM165_"+domain+"_ssh_y2013.1y.nc" # Model file
+    fileOI                      = datapath+domain+"/oi/ssh_NATL60_4nadir.nc"            # OI file
     if opt=="nadir":
-        fileObs                 = datapath+"/"+domain+"/data/gridded_data_swot_wocorr/dataset_nadir_"+lag+"d.nc" # Obs file (1)
+        fileObs                 = datapath+domain+"/data/gridded_data_swot_wocorr/dataset_nadir_"+lag+"d.nc" # Obs file (1)
     elif opt=="swot": 
-        fileObs                 = datapath+"/"+domain+"/data/gridded_data_swot_wocorr/dataset_swot.nc"           # Obs file (2)
+        fileObs                 = datapath+domain+"/data/gridded_data_swot_wocorr/dataset_swot.nc"           # Obs file (2)
     else:
-        fileObs                 = datapath+"/"+domain+"/data/gridded_data_swot_wocorr/dataset_nadir_"+lag+"d_swot.nc" # Obs file (3)
+        fileObs                 = datapath+domain+"/data/gridded_data_swot_wocorr/dataset_nadir_"+lag+"d_swot.nc" # Obs file (3)
     flagTrWMissingData          = 0     # Training phase with or without missing data
     flagloadOIData 		= 1     # load OI: work on rough variable or anomaly
     include_covariates          = False  # use additional covariates in initial layer
     N_cov                       = 0     # SST, SSS and OI
     '''N_cov                       = 3     # SST, SSS and OI
-    lfile_cov                   = [datapath+"/"+domain+"/maps/NATL60-CJM165_sst_y2013.1y.nc",\
-                                   datapath+"/"+domain+"/maps/NATL60-CJM165_sss_y2013.1y.nc",\
-                                   datapath+"/"+domain+"/oi/ssh_NATL60_4nadir.nc"]
+    lfile_cov                   = [datapath+domain+"/ref/NATL60-CJM165_sst_y2013.1y.nc",\
+                                   datapath+domain+"/ref/NATL60-CJM165_sss_y2013.1y.nc",\
+                                   datapath+domain+"/oi/ssh_NATL60_4nadir.nc"]
     lname_cov                   = ["sst","sss","ssh_mod"]
     lid_cov                     = ["SST","SSS","OI"]'''
-    lfile_cov                   = [datapath+"/"+domain+"/oi/ssh_NATL60_4nadir.nc"]
+    lfile_cov                   = [datapath+domain+"/oi/ssh_NATL60_4nadir.nc"]
     lname_cov                   = ["ssh_mod"]
     lid_cov                     = ["OI"]
     size_tw                     = 11    # Length of the 4th dimension          
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     # push all global parameters in a list
     def createGlobParams(params):
         return dict(((k, eval(k)) for k in params))
-    list_globParams=['fileMod','fileObs','fileOI',\
+    list_globParams=['domain','fileMod','fileObs','fileOI',\
     'include_covariates','N_cov','lfile_cov','lid_cov','lname_cov',\
     'flagTrOuputWOMissingData','flagTrWMissingData',\
     'flagloadOIData','size_tw','Wsquare',\

@@ -1,7 +1,7 @@
 #!/bin/sh
 
 tobs=${1}
-domain="GULFSTREAM"
+domain="OSMOSIS"
 sbatch mono_gpu.slurm ${tobs} 0 False ${domain}
 sbatch mono_gpu.slurm ${tobs} 1 False ${domain}
 sbatch mono_gpu.slurm ${tobs} 2 False ${domain}

@@ -18,7 +18,7 @@ module purge
 # chargement des modules
 module load geos/3.7.3
 module load tensorflow-gpu/py3/1.14-openmpi
-export PYTHONPATH=${HOME}/DINAE:${PYTHONPATH}
+export PYTHONPATH=${HOME}/DINAE_keras:${PYTHONPATH}
  
 # echo des commandes lancées
 set -x

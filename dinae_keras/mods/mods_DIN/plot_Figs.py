@@ -2,7 +2,7 @@ import os
 from ..tools import *
 from ..graphics import *
 
-def plot_Figs(dirSAVE,genFilename,genSuffixModel,\
+def plot_Figs(dirSAVE,domain,genFilename,genSuffixModel,\
               x_train,x_train_missing,mask_train,x_train_pred,rec_AE_Tr,\
               x_test,x_test_missing,mask_test,lday_test,x_test_pred,rec_AE_Tt,\
               iter):
@@ -22,13 +22,23 @@ def plot_Figs(dirSAVE,genFilename,genSuffixModel,\
         mk_dir_recursive(figpathTt) 
 
     idT = int(np.floor(x_test.shape[3]/2))
-    lon = np.arange(-65,-55,1/20)
-    lat = np.arange(30,40,1/20)
-    indLat     = np.arange(0,200)
-    indLon     = np.arange(0,200)
-    lon = lon[indLon]
-    lat = lat[indLat]
-    extent_=[np.min(lon),np.max(lon),np.min(lat),np.max(lat)]
+    if domain=="OSMOSIS":
+        extent     = [-19.5,-11.5,45.,55.]
+        indLat     = 200
+        indLon     = 160
+    elif domain=='GULFSTREAM':
+        extent     = [-65.,-55.,33.,43.]
+        indLat     = 200
+        indLon     = 200
+    else:
+        extent=[-65.,-55.,30.,40.]
+        indLat     = 200
+        indLon     = 200
+    lon = np.arange(extent[0],extent[1],1/20)
+    lat = np.arange(extent[2],extent[3],1/20)
+    lon = lon[:indLon]
+    lat = lat[:indLat]
+
     lfig=[20,40,60]
 
     # Training dataset
@@ -47,13 +57,13 @@ def plot_Figs(dirSAVE,genFilename,genSuffixModel,\
         PRED = x_train_pred[ifig,:,:,idT].squeeze()
         REC  = rec_AE_Tr[ifig,:,:,idT].squeeze()
         plot(ax,0,0,lon,lat,GT,"GT",\
-             extent=extent_,cmap=cmap,vmin=vmin,vmax=vmax)
+             extent=extent,cmap=cmap,vmin=vmin,vmax=vmax)
         plot(ax,0,1,lon,lat,OBS,"Observations",\
-             extent=extent_,cmap=cmap,vmin=vmin,vmax=vmax)
+             extent=extent,cmap=cmap,vmin=vmin,vmax=vmax)
         plot(ax,1,0,lon,lat,PRED,"Pred",\
-             extent=extent_,cmap=cmap,vmin=vmin,vmax=vmax)
+             extent=extent,cmap=cmap,vmin=vmin,vmax=vmax)
         plot(ax,1,1,lon,lat,REC,"Rec",\
-             extent=extent_,cmap=cmap,vmin=vmin,vmax=vmax)
+             extent=extent,cmap=cmap,vmin=vmin,vmax=vmax)
         plt.subplots_adjust(hspace=0.5,wspace=0.25)
         plt.savefig(figName)       # save the figure
         plt.close()                # close the figure
@@ -71,13 +81,13 @@ def plot_Figs(dirSAVE,genFilename,genSuffixModel,\
         PRED = Gradient(x_train_pred[ifig,:,:,idT].squeeze(),2)
         REC  = Gradient(rec_AE_Tr[ifig,:,:,idT].squeeze(),2)
         plot(ax,0,0,lon,lat,GT,r"$\nabla_{GT}$",\
-             extent=extent_,cmap=cmap,vmin=vmin,vmax=vmax)
+             extent=extent,cmap=cmap,vmin=vmin,vmax=vmax)
         plot(ax,0,1,lon,lat,OBS,r"$\nabla_{Obs}$",\
-             extent=extent_,cmap=cmap,vmin=vmin,vmax=vmax)
+             extent=extent,cmap=cmap,vmin=vmin,vmax=vmax)
         plot(ax,1,0,lon,lat,PRED,r"$\nabla_{Pred}$",\
-             extent=extent_,cmap=cmap,vmin=vmin,vmax=vmax)
+             extent=extent,cmap=cmap,vmin=vmin,vmax=vmax)
         plot(ax,1,1,lon,lat,REC,r"$\nabla_{Rec}$",\
-             extent=extent_,cmap=cmap,vmin=vmin,vmax=vmax)
+             extent=extent,cmap=cmap,vmin=vmin,vmax=vmax)
         plt.subplots_adjust(hspace=0.5,wspace=0.25)
         plt.savefig(figName)       # save the figure
         plt.close()                # close the figure
@@ -99,13 +109,13 @@ def plot_Figs(dirSAVE,genFilename,genSuffixModel,\
         PRED = x_test_pred[ifig,:,:,idT].squeeze()
         REC  = rec_AE_Tt[ifig,:,:,idT].squeeze()
         plot(ax,0,0,lon,lat,GT,"GT",\
-             extent=extent_,cmap=cmap,vmin=vmin,vmax=vmax)
+             extent=extent,cmap=cmap,vmin=vmin,vmax=vmax)
         plot(ax,0,1,lon,lat,OBS,"Observations",\
-             extent=extent_,cmap=cmap,vmin=vmin,vmax=vmax)
+             extent=extent,cmap=cmap,vmin=vmin,vmax=vmax)
         plot(ax,1,0,lon,lat,PRED,"Pred",\
-             extent=extent_,cmap=cmap,vmin=vmin,vmax=vmax)
+             extent=extent,cmap=cmap,vmin=vmin,vmax=vmax)
         plot(ax,1,1,lon,lat,REC,"Rec",\
-             extent=extent_,cmap=cmap,vmin=vmin,vmax=vmax)
+             extent=extent,cmap=cmap,vmin=vmin,vmax=vmax)
         plt.subplots_adjust(hspace=0.5,wspace=0.25)
         plt.savefig(figName)       # save the figure
         plt.close()                # close the figure
@@ -123,13 +133,13 @@ def plot_Figs(dirSAVE,genFilename,genSuffixModel,\
         PRED = Gradient(x_test_pred[ifig,:,:,idT].squeeze(),2)
         REC  = Gradient(rec_AE_Tt[ifig,:,:,idT].squeeze(),2)
         plot(ax,0,0,lon,lat,GT,r"$\nabla_{GT}$",\
-             extent=extent_,cmap=cmap,vmin=vmin,vmax=vmax)
+             extent=extent,cmap=cmap,vmin=vmin,vmax=vmax)
         plot(ax,0,1,lon,lat,OBS,r"$\nabla_{Observations}$",\
-             extent=extent_,cmap=cmap,vmin=vmin,vmax=vmax)
+             extent=extent,cmap=cmap,vmin=vmin,vmax=vmax)
         plot(ax,1,0,lon,lat,PRED,r"$\nabla_{Pred}$",\
-             extent=extent_,cmap=cmap,vmin=vmin,vmax=vmax)
+             extent=extent,cmap=cmap,vmin=vmin,vmax=vmax)
         plot(ax,1,1,lon,lat,REC,r"$\nabla_{Rec}$",\
-             extent=extent_,cmap=cmap,vmin=vmin,vmax=vmax)
+             extent=extent,cmap=cmap,vmin=vmin,vmax=vmax)
         plt.subplots_adjust(hspace=0.5,wspace=0.25)
         plt.savefig(figName)       # save the figure
         plt.close()                # close the figure
