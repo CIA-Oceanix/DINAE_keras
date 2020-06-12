@@ -80,14 +80,16 @@ import tensorflow as tf
 import keras
 from keras.constraints import Constraint
 from keras import backend as K
-from .mods.import_Datasets    import *
-from .mods.import_Datasets_xp import *
-from .mods.define_Models      import *
-from .mods.define_Classifiers import *
-from .mods.FP_Learning        import *
-from .mods.GB_Learning        import *
-from .mods.tools              import *
-from .mods.graphics           import *
+from .mods.import_Datasets_OSSE  import *
+from .mods.import_Datasets_OSE   import *
+from .mods.define_Models         import *
+from .mods.define_Classifiers    import *
+from .mods.FP_OSSE               import *
+from .mods.GB_OSSE               import *
+from .mods.FP_OSE                import *
+from .mods.GB_OSE                import *
+from .mods.tools                 import *
+from .mods.graphics              import *
 
 print("...Done") # ... initializing Libraries
 

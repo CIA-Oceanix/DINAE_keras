@@ -2,7 +2,7 @@ from dinae_keras import *
 from .mods_DIN.def_GradModel         import define_GradModel
 from .mods_DIN.def_GradDINConvAE     import define_GradDINConvAE
 
-def load_Models_GB(dict_global_Params, genFilename, shape, fileAEModelInit, params):
+def load_Models_GB(dict_global_Params, genFilename, shape, fileModels, encoder, decoder, model_AE, params):
 
     # import Global Parameters
     for key,val in dict_global_Params.items():
@@ -11,9 +11,9 @@ def load_Models_GB(dict_global_Params, genFilename, shape, fileAEModelInit, para
     DimCAE = DimAE
 
     nProjInit, nGradInit, lrInit = params
-    print('.................. Load Encoder/Decoder '+fileAEModelInit)
-    encoder.load_weights(fileAEModelInit)
-    decoder.load_weights(fileAEModelInit.replace('Encoder','Decoder'))
+    print('.................. Load Encoder/Decoder ')
+    encoder.load_weights(fileModels[0])
+    decoder.load_weights(fileModels[1].replace('Encoder','Decoder'))
 
     for layer in encoder.layers:
         layer.trainable = True

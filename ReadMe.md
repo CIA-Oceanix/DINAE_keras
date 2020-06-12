@@ -1,48 +1,37 @@
-# launch.py
+# scripts/OS(S)E
 
-The top script, with global parameters used in the AE and main calls to the functions: data reading, training, evaluations, plots...
+The top scripts for OS(S)E-based experiments, with global parameters used in the AE and main calls to the functions: data reading, training, evaluations, plots...
 
-# dinae/mods/flagProcess0.py
-Read the model, the observations, the mask and the OI
+* O(S)E/launch_OS(S)E.py: the topscript for running an experiment
+* O(S)E/mono_gpu_OS(S)E.slurm: a submission script for SLURM-based HPC
+* O(S)E/topscript.sh: a bash script to submit different configurations of launch_OS(S)E.py
+ 
+# dinae_keras/mods/import_Datasets_OS(S)E.py
+Import data for OS(S)E-based experiments
 
-# dinae/mods/flagProcess1.py
-Create missing data (based on the mask variables)
-
-# dinae/mods/flagProcess2.py
+# dinae_keras/mods/define_Models.py
 Design of the autoencoder:
+* mods_NN/ConvAE.py: 2D-convolutional auto-encoder
+* mods_NN/ConvAE.py: Gibbs-Energy NN
 
-* mods_flagProcess2/flagProcess2_6.py:
-  * Definition of the Encoder:   encoder = keras.models.Model([input_layer,mask],x)
-    * input_layer (keras.layers.Input): 3-dimensional (training dataset shape)
-    * mask (keras.layers.Input): 3-dimensional 
-    * x: add all the layers (Conv2D+Pooling+Dropout)
-  * Definition of the decoder:   decoder = keras.models.Model(decoder_input,x)
-    * decoder_input: (keras.layers.Input) : 3-dimensional
-    * x: add all the layer (Conv2D+Dropout)
-  * Full definition of the model: model = keras.models.Model([input_data,mask],x)
-    * input_data: 3-dimensional (training dataset shape) 
-    * mask: 3-dimensional (training dataset shape) 
-    * x: decoder(encoder([input_data,mask]))
-  * Compile model: model.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=1e-3))
-
-mods_flagProcess2/flagProcess2_7.py:
-mods_flagProcess2/flagProcess2_8.py:
-
-# dinae/mods/flagProcess3.py
+# dinae/mods/define_Classifiers.py
 Define classifiers
 
-# dinae/mods/flagProcess4.py
-Train and evaluate AE
-
-* mods_flagProcess4/eval_Performance.py:
+# dinae/mods/FP_OS(S)E.py
+Train and evaluate AE model for OS(S)E-based experiments with FP-solver
+* load_Models_FP.py: load saved FP-models from previous run/iteration
+* mods_DIN/def_DINConvAE.py:
+* mods_DIN/eval_Performance.py:
   * eval_AEPerformance(x_train,rec_AE_Tr,x_test,rec_AE_Tt): compute the scores of AE reconstruction from training and test datasets
   * eval_InterpPerformance: compute the scores of the interpolation (where there is no data)
+* mods_DIN/save_Models.py:
+* mods_DIN/plot_Figs.py:
 
-mods_flagProcess4/def_DINConvAE.py:
-  *
+# dinae/mods/GB_OS(S)E.py
+Train and evaluate AE model for OS(S)E-based experiments with GB-solver
+* load_Models_GB.py: load saved GB-models from previous run/iteration
+* mods_DIN/def_GradModel.py:
+* mods_DIN/def_GradDINConvAE.py:
 
-mods_flagProcess4/def_GradModel.py:
-
-mods_flagProcess4/def_GradDINConvAE.py:
 
 
