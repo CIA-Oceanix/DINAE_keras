@@ -17,12 +17,12 @@ def save_Models(dict_global_Params,genFilename,NBProjCurrent,encoder,decoder,ite
         if stdMask  > 0:
             genSuffixModel = genSuffixModel+'_Std%03d'%(100*stdMask)
 
-    if flagOptimMethod == 0:
+    if flagOptimMethod == "FP":
         if flagTrOuputWOMissingData == 1:
             genSuffixModel = genSuffixModel+'_AETRwoMissingData'+str('%02d'%(flagAEType))+'D'+str('%02d'%(DimAE))+'N'+str('%02d'%(Nsquare))+'W'+str('%02d'%(Wsquare))+'_Nproj'+str('%02d'%(NBProjCurrent))
         else:
             genSuffixModel = genSuffixModel+'_AE'+str('%02d'%(flagAEType))+'D'+str('%02d'%(DimAE))+'N'+str('%02d'%(Nsquare))+'W'+str('%02d'%(Wsquare))+'_Nproj'+str('%02d'%(NBProjCurrent))
-    elif flagOptimMethod == 1:
+    elif flagOptimMethod == "GB":
         if flagTrOuputWOMissingData == 1:
             genSuffixModel = genSuffixModel+'GradAETRwoMissingData'+str('%02d'%(flagAEType))+str('_%02d'%(flagGradModel))+'D'+str('%02d'%(DimAE))+'N'+str('%02d'%(Nsquare))+'W'+str('%02d'%(Wsquare))+'_Nproj'+str('%02d'%(NBProjCurrent))+'_Grad'+str('%02d'%(NBGradCurrent))
         else:
@@ -34,7 +34,7 @@ def save_Models(dict_global_Params,genFilename,NBProjCurrent,encoder,decoder,ite
     fileMod = dirSAVE+genFilename+genSuffixModel+'_Decoder_iter%03d'%(iter)+'.mod'
     print('.................. Decoder '+fileMod)
     decoder.save(fileMod)
-    if flagOptimMethod == 1:
+    if flagOptimMethod == "GB":
         fileMod = dirSAVE+genFilename+genSuffixModel+'_GradModel_iter%03d'%(iter)+'.mod'
         print('.................. GradModel '+fileMod)
         gradModel.save(fileMod)

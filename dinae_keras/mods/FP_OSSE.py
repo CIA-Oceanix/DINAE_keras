@@ -72,7 +72,7 @@ def FP_OSSE(dict_global_Params,genFilename,x_train,x_train_missing,mask_train,gt
     # Start Learning model #
     # ******************** #
         
-    print("..... Start learning AE model %d FP/Grad %d"%(flagAEType,flagOptimMethod))
+    print("..... Start learning AE model %d FP/Grad %s"%(flagAEType,flagOptimMethod))
     for iter in range(iterInit,Niter):
         if iter == IterUpdate[comptUpdate]:
             # update DINConvAE model

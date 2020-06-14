@@ -43,7 +43,7 @@ def FP_OSE(dict_global_Params,genFilename,\
         IterUpdate     = [0,3,10,15,20,25,30,35,40]
         val_split      = 0.1
         comptUpdate    = 0
-        print("..... Start learning AE model %d FP/Grad %d"%(flagAEType,flagOptimMethod))
+        print("..... Start learning AE model %d FP/Grad %s"%(flagAEType,flagOptimMethod))
         for iter in range(0,Niter):
             if iter == IterUpdate[comptUpdate]:
                 # update DINConvAE model
@@ -99,17 +99,10 @@ def FP_OSE(dict_global_Params,genFilename,\
         genSuffixModel = genSuffixModel+'_MaskInEnc'
         if stdMask  > 0:
             genSuffixModel = genSuffixModel+'_Std%03d'%(100*stdMask)
-
-    if flagOptimMethod == 0:
-        if flagTrOuputWOMissingData == 1:
-            genSuffixModel = genSuffixModel+'_AETRwoMissingData'+str('%02d'%(flagAEType))+'D'+str('%02d'%(DimAE))+'N'+str('%02d'%(Nsquare))+'W'+str('%02d'%(Wsquare))+'_Nproj'+str('%02d'%(NBProjCurrent))
-        else:
-            genSuffixModel = genSuffixModel+'_AE'+str('%02d'%(flagAEType))+'D'+str('%02d'%(DimAE))+'N'+str('%02d'%(Nsquare))+'W'+str('%02d'%(Wsquare))+'_Nproj'+str('%02d'%(NBProjCurrent))
-    elif flagOptimMethod == 1:
-        if flagTrOuputWOMissingData == 1:
-            genSuffixModel = genSuffixModel+'GradAETRwoMissingData'+str('%02d'%(flagAEType))+str('_%02d'%(flagGradModel))+'D'+str('%02d'%(DimAE))+'N'+str('%02d'%(Nsquare))+'W'+str('%02d'%(Wsquare))+'_Nproj'+str('%02d'%(NBProjCurrent))+'_Grad'+str('%02d'%(NBGradCurrent))
-        else:
-            genSuffixModel = genSuffixModel+'GradAE'+str('%02d'%(flagAEType))+str('_%02d'%(flagGradModel))+'_D'+str('%02d'%(DimAE))+'N'+str('%02d'%(Nsquare))+'W'+str('%02d'%(Wsquare))+'_Nproj'+str('%02d'%(NBProjCurrent))+'_Grad'+str('%02d'%(NBGradCurrent))
+    if flagTrOuputWOMissingData == 1:
+        genSuffixModel = genSuffixModel+'_AETRwoMissingData'+str('%02d'%(flagAEType))+'D'+str('%02d'%(DimAE))+'N'+str('%02d'%(Nsquare))+'W'+str('%02d'%(Wsquare))+'_Nproj'+str('%02d'%(NBProjCurrent))
+    else:
+        genSuffixModel = genSuffixModel+'_AE'+str('%02d'%(flagAEType))+'D'+str('%02d'%(DimAE))+'N'+str('%02d'%(Nsquare))+'W'+str('%02d'%(Wsquare))+'_Nproj'+str('%02d'%(NBProjCurrent))
     if flagloadOIData == 1:
         # generate some plots
         plot_Figs_Tt(dirSAVE,domain,genFilename,genSuffixModel,\

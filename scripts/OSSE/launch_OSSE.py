@@ -109,7 +109,7 @@ if __name__ == '__main__':
 
     #1) *** Read the data ***
     genFilename, x_train, y_train, mask_train, gt_train, x_train_missing, meanTr, stdTr,\
-    x_test, y_test, mask_test, gt_test, x_test_missing, lday_test, x_train_OI, x_test_OI = import_DataTrain(globParams,type_obs)
+    x_test, y_test, mask_test, gt_test, x_test_missing, lday_test, x_train_OI, x_test_OI = import_Data_OSSE(globParams,type_obs)
 
     #3) *** Define AE architecture ***
     genFilename, encoder, decoder, model_AE, DIMCAE = define_Models(globParams,genFilename,x_train,mask_train)

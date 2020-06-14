@@ -87,7 +87,7 @@ if __name__ == '__main__':
 
     #1) *** Read the data ***
     genFilename, meanTt, stdTt,\
-    x_test, y_test, mask_test, gt_test, x_test_missing, lday_test, x_train_OI, x_test_OI = import_data_OSE(globParams)
+    x_test, y_test, mask_test, gt_test, x_test_missing, lday_test, x_train_OI, x_test_OI = import_Data_OSE(globParams)
 
     #3) *** Define AE architecture ***
     genFilename, encoder, decoder, model_AE, DIMCAE = define_Models(globParams,genFilename,x_test,mask_test)

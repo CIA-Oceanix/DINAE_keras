@@ -17,31 +17,56 @@ def GB_OSE(dict_global_Params,genFilename,\
     for key,val in dict_global_Params.items():
         exec("globals()['"+key+"']=val")
 
-    ## Load models
-    if domain=="GULFSTREAM":
-        weights_Encoder="/gpfsscratch/rech/yrf/uba22to/DINAE/GULFSTREAM"+\
-                        "/resIA_nadir_nadlag_5_obs/GB_GENN_wwmissing_wOI/"+\
-                        "modelNATL60_SSH_275_200_200_dW000WFilter011_NFilter200_"+\
-                        "RU010_LR004woSR_Alpha100_AE07D200N03W04_Nproj05_Encoder_iter019.mod"
-        weights_Decoder="/gpfsscratch/rech/yrf/uba22to/DINAE/GULFSTREAM"+\
-                        "/resIA_nadir_nadlag_5_obs/GB_GENN_wwmissing_wOI/"+\
-                        "modelNATL60_SSH_275_200_200_dW000WFilter011_NFilter200_"+\
-                        "RU010_LR004woSR_Alpha100_AE07D200N03W04_Nproj05_Decoder_iter019.mod"
-    elif domain=="OSMOSIS":
-        weights_Encoder="/gpfsscratch/rech/yrf/uba22to/DINAE/OSMOSIS"+\
-                        "/resIA_nadir_nadlag_5_obs/GB_GENN_wwmissing_wOI/"+\
-                        "modelNATL60_SSH_275_200_200_dW000WFilter011_NFilter200_"+\
-                        "RU010_LR004woSR_Alpha100_AE07D200N03W04_Nproj05_Encoder_iter019.mod"
-        weights_Decoder="/gpfsscratch/rech/yrf/uba22to/DINAE/OSMOSIS"+\
-                        "/resIA_nadir_nadlag_5_obs/GB_GENN_wwmissing_wOI/"+\
-                        "modelNATL60_SSH_275_200_200_dW000WFilter011_NFilter200_"+\
-                        "RU010_LR004woSR_Alpha100_AE07D200N03W04_Nproj05_Decoder_iter019.mod"
-    global_model_Grad, global_model_Grad_Masked =\
-        load_Models_GB(dict_global_Params, genFilename, x_test.shape,fileModels,\
-                       encoder,decoder,model_AE,[2,1e-3])
+    x_test_init  = np.nan_to_num(np.copy(x_test_missing))
 
-    ## initialization
-    x_test_init  = np.copy(x_test_missing)
+    if load_Model==True:
+        ## Load models
+        if domain=="GULFSTREAM":
+            weights_Encoder="/gpfsscratch/rech/yrf/uba22to/DINAE/GULFSTREAM"+\
+                        "/resIA_nadir_nadlag_5_obs/GB_GENN_wwmissing_wOI/"+\
+                        "modelNATL60_SSH_275_200_200_dW000WFilter011_NFilter200_"+\
+                        "RU010_LR004woSR_Alpha100_AE07D200N03W04_Nproj05_Encoder_iter019.mod"
+        elif domain=="OSMOSIS":
+            weights_Encoder="/gpfsscratch/rech/yrf/uba22to/DINAE/OSMOSIS"+\
+                        "/resIA_nadir_nadlag_5_obs/GB_GENN_wwmissing_wOI/"+\
+                        "modelNATL60_SSH_275_200_200_dW000WFilter011_NFilter200_"+\
+                        "RU010_LR004woSR_Alpha100_AE07D200N03W04_Nproj05_Encoder_iter019.mod"
+        weights_Decoder=weights_Encoder.replace('Encoder','Decoder')
+        global_model_Grad, global_model_Grad_Masked =\
+            load_Models_GB(dict_global_Params, genFilename, x_test.shape,fileModels,\
+                       encoder,decoder,model_AE,[5,2,1e-3])
+    else:
+        ## Train models
+        NbProjection   = [5,5,5,5]
+        NbGradIter     = [0,1,2,5,5,8,12,12]
+        lrUpdate   = [1e-4,1e-5,1e-6,1e-7]
+        IterUpdate     = [0,3,10,15,20,25,30,35,40]
+        val_split      = 0.1
+        comptUpdate    = 0
+        for iter in range(iterInit,Niter):
+            if iter == IterUpdate[comptUpdate]:
+                if (iter > IterTrainAE) & (flagLoadModelAE == 1):
+                    print("..... Make trainable AE parameters")
+                    for layer in encoder.layers:
+                        layer.trainable = True
+                    for layer in decoder.layers:
+                        layer.trainable = True
+
+                NBProjCurrent = NbProjection[comptUpdate]
+                NBGradCurrent = NbGradIter[comptUpdate]
+                print("..... Update/initialize number of projections/Graditer in GradConvAE model # %d/%d"%(NbProjection[comptUpdate],NbGradIter[comptUpdate]))
+                global_model_Grad,global_model_Grad_Masked = define_GradDINConvAE(NbProjection[comptUpdate],NbGradIter[comptUpdate],model_AE,x_train.shape,gradModel,gradMaskModel,flagGradModel)
+                global_model_Grad_Masked.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
+            if comptUpdate < len(NbProjection)-1:
+                comptUpdate += 1
+
+            history = global_model_Grad_Masked.fit([x_test_init,mask_test],[np.zeros((x_test_init.shape[0],1))],
+                  batch_size=batch_size,
+                  epochs = NbEpoc,
+                  verbose = 1,
+                  validation_split=val_split)
+
+            genSuffixModel=save_Models(dict_global_Params,genFilename,NBProjCurrent,encoder,decoder,iter)
 
     # *********************** #
     # Prediction on test data #
@@ -69,6 +94,18 @@ def GB_OSE(dict_global_Params,genFilename,\
         
     idT = int(np.floor(x_test.shape[3]/2))
     saved_path = dirSAVE+'/saved_path_GB_'+suf1+'_'+suf2+'.pickle'
+    alpha=[1.,0.,0.]
+    NBProjCurrent=5
+    NBGradCurrent=0
+    genSuffixModel = '_Alpha%03d'%(100*alpha[0]+10*alpha[1]+alpha[2])
+    if flagUseMaskinEncoder == 1:
+        genSuffixModel = genSuffixModel+'_MaskInEnc'
+        if stdMask  > 0:
+            genSuffixModel = genSuffixModel+'_Std%03d'%(100*stdMask)
+    if flagTrOuputWOMissingData == 1:
+        genSuffixModel = genSuffixModel+'_AETRwoMissingData'+str('%02d'%(flagAEType))+'D'+str('%02d'%(DimAE))+'N'+str('%02d'%(Nsquare))+'W'+str('%02d'%(Wsquare))+'_Nproj'+str('%02d'%(NBProjCurrent))
+    else:
+        genSuffixModel = genSuffixModel+'_AE'+str('%02d'%(flagAEType))+'D'+str('%02d'%(DimAE))+'N'+str('%02d'%(Nsquare))+'W'+str('%02d'%(Wsquare))+'_Nproj'+str('%02d'%(NBProjCurrent))
     if flagloadOIData == 1:
         # generate some plots
         plot_Figs_Tt(dirSAVE,domain,genFilename,genSuffixModel,\

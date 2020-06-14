@@ -12,7 +12,7 @@ Import data for OS(S)E-based experiments
 # dinae_keras/mods/define_Models.py
 Design of the autoencoder:
 * mods_NN/ConvAE.py: 2D-convolutional auto-encoder
-* mods_NN/ConvAE.py: Gibbs-Energy NN
+* mods_NN/GENN.py: Gibbs-Energy NN
 
 # dinae/mods/define_Classifiers.py
 Define classifiers

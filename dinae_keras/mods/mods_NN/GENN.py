@@ -48,6 +48,10 @@ def GENN(dict_global_Params,flagdownScale,flagSRResNet,genFilename,x_data,mask_d
     elif flagdownScale == 3 :
         genFilename = genFilename+str('MR%03d'%scaleLR)
 
+    # define input and mask layers
+    input_layer = keras.layers.Input(shape=(x_data.shape[1],x_data.shape[2],x_data.shape[3]))
+    mask       = keras.layers.Input(shape=(x_data.shape[1],x_data.shape[2],x_data.shape[3]))
+
     # use Mask in Encoder
     if flagUseMaskinEncoder == 1:
         dmask   = keras.layers.Lambda(lambda x: 0.2*x - 0.1)(mask)
@@ -58,13 +62,9 @@ def GENN(dict_global_Params,flagdownScale,flagSRResNet,genFilename,x_data,mask_d
         x0       = keras.layers.Concatenate(axis=-1)([input_layer,dmask])
         mx	 = 2
     else:
-        x0  = keras.layers.Lambda(lambda x: 1. * x)(input_layer)        
-	mx  = 1
+        x0  = keras.layers.Lambda(lambda x: 1. * x)(input_layer)
+        mx  = 1
 
-    # define input and mask layers
-    input_layer = keras.layers.Input(shape=(x_data.shape[1],x_data.shape[2],x_data.shape[3]))
-    mask       = keras.layers.Input(shape=(x_data.shape[1],x_data.shape[2],x_data.shape[3]))
-    
     # coarse scale (xLR)
     if flagdownScale > 0 :
         x = keras.layers.AveragePooling2D((scaleLR,scaleLR), padding='valid')(x0)
