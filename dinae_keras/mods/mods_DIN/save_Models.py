@@ -3,9 +3,10 @@ from dinae_keras import *
 def save_Models(dict_global_Params,genFilename,NBProjCurrent,encoder,decoder,iter,*args):   
 
     if len(args)>0:
-        args[0] = gradModel
-        args[1] = gradMaskModel
-        args[2] = NBGradCurrent
+        gradModel = args[0] 
+        gradMaskModel = args[1] 
+        NBGradCurrent = args[2]
+
     # import Global Parameters
     for key,val in dict_global_Params.items():
         exec("globals()['"+key+"']=val")

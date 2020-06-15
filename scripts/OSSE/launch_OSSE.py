@@ -52,7 +52,7 @@ if __name__ == '__main__':
         lfile_cov                   = [datapath+domain+"/oi/ssh_NATL60_4nadir.nc"]
         lname_cov                   = ["ssh_mod"]
         lid_cov                     = ["OI"]
-        Ncov                        = len(lid_cov)
+        N_cov                        = len(lid_cov)
     size_tw                     = 11    # Length of the 4th dimension          
     Wsquare     		= 4     # half-width of holes
     Nsquare     		= 3     # number of holes
@@ -60,8 +60,8 @@ if __name__ == '__main__':
     flagAEType  		= 2     # model type, ConvAE or GE-NN
     flagLoadModel               = 0     # load pre-defined AE model or not
     flag_MultiScaleAEModel      = 0     # see flagProcess2_7: work on HR(0), LR(1), or HR+LR(2)
-    flagOptimMethod 		= "FP"  # FP : iterated projections, GB : Gradient descent  
-    flagGradModel   		= 0     # 0: F(Grad,Mask), 1: F==(Grad,Grad(t-1),Mask), 2: LSTM(Grad,Mask)
+    flagOptimMethod 		= "GB"  # FP : iterated projections, GB : Gradient descent  
+    flagGradModel   		= 1     # 0: F(Grad,Mask), 1: F==(Grad,Grad(t-1),Mask), 2: LSTM(Grad,Mask)
     sigNoise        		= 1e-1
     flagUseMaskinEncoder 	= 0
     flagTrOuputWOMissingData    = 1

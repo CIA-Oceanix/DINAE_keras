@@ -32,7 +32,7 @@ def GB_OSE(dict_global_Params,genFilename,\
                         "modelNATL60_SSH_275_200_200_dW000WFilter011_NFilter200_"+\
                         "RU010_LR004woSR_Alpha100_AE07D200N03W04_Nproj05_Encoder_iter019.mod"
         weights_Decoder=weights_Encoder.replace('Encoder','Decoder')
-        global_model_Grad, global_model_Grad_Masked =\
+        gradModel, gradMaskModel, global_model_Grad, global_model_Grad_Masked =\
             load_Models_GB(dict_global_Params, genFilename, x_test.shape,fileModels,\
                        encoder,decoder,model_AE,[5,2,1e-3])
     else:
@@ -45,7 +45,7 @@ def GB_OSE(dict_global_Params,genFilename,\
         comptUpdate    = 0
         for iter in range(iterInit,Niter):
             if iter == IterUpdate[comptUpdate]:
-                if (iter > IterTrainAE) & (flagLoadModelAE == 1):
+                if (iter > IterTrainAE) & (flagLoadModel == 1):
                     print("..... Make trainable AE parameters")
                     for layer in encoder.layers:
                         layer.trainable = True
@@ -55,7 +55,7 @@ def GB_OSE(dict_global_Params,genFilename,\
                 NBProjCurrent = NbProjection[comptUpdate]
                 NBGradCurrent = NbGradIter[comptUpdate]
                 print("..... Update/initialize number of projections/Graditer in GradConvAE model # %d/%d"%(NbProjection[comptUpdate],NbGradIter[comptUpdate]))
-                global_model_Grad,global_model_Grad_Masked = define_GradDINConvAE(NbProjection[comptUpdate],NbGradIter[comptUpdate],model_AE,x_train.shape,gradModel,gradMaskModel,flagGradModel)
+                global_model_Grad,global_model_Grad_Masked = define_GradDINConvAE(NbProjection[comptUpdate],NbGradIter[comptUpdate],model_AE,x_train.shape,gradModel,gradMaskModel,flagGradModel,flagUseMaskinEncoder,size_tw,include_covariates,N_cov)
                 global_model_Grad_Masked.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
             if comptUpdate < len(NbProjection)-1:
                 comptUpdate += 1
@@ -66,7 +66,8 @@ def GB_OSE(dict_global_Params,genFilename,\
                   verbose = 1,
                   validation_split=val_split)
 
-            genSuffixModel=save_Models(dict_global_Params,genFilename,NBProjCurrent,encoder,decoder,iter)
+            genSuffixModel=save_Models(dict_global_Params,genFilename,NBProjCurrent,encoder,decoder,iter,\
+                                       gradModel,gradMaskModel,NBGradCurrent)
 
     # *********************** #
     # Prediction on test data #

@@ -1,6 +1,6 @@
 from dinae_keras import *
 
-def define_GradModel(model_AE,shape,flagGradModel=0):
+def define_GradModel(model_AE,shape,flagGradModel,wl2):
 
     x_input         = keras.layers.Input((shape[1],shape[2],2*shape[3]))
 

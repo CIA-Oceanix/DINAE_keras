@@ -5,8 +5,6 @@ from .load_Models_FP                 import load_Models_FP
 from .mods_DIN.eval_Performance      import eval_AEPerformance
 from .mods_DIN.eval_Performance      import eval_InterpPerformance
 from .mods_DIN.def_DINConvAE         import define_DINConvAE
-from .mods_DIN.def_GradModel         import define_GradModel
-from .mods_DIN.def_GradDINConvAE     import define_GradDINConvAE
 from .mods_DIN.plot_Figs             import plot_Figs
 from .mods_DIN.save_Models           import save_Models
 
@@ -66,7 +64,8 @@ def FP_OSSE(dict_global_Params,genFilename,x_train,x_train_missing,mask_train,gt
     comptUpdate = 0
     if flagLoadModel == 1:
         global_model_FP, global_model_FP_Masked =\
-        load_Models_FP(dict_global_Params, genFilename, x_train.shape,fileAEModelInit,[2,1e-3])
+        load_Models_FP(dict_global_Params, genFilename, x_train.shape,fileAEModelInit,\
+                       encoder,decoder,model_AE,[2,1e-3])
 
     # ******************** #
     # Start Learning model #

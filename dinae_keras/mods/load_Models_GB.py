@@ -21,16 +21,16 @@ def load_Models_GB(dict_global_Params, genFilename, shape, fileModels, encoder, 
         layer.trainable = True
 
     print("..... Initialize number of projections/Graditer in GradCOnvAE model # %d/%d"%(nProjInit,nGradInit))
-    gradModel,gradMaskModel =  define_GradModel(shape,flagGradModel)
-
-    #gradMaskModel.load_weights(fileAEModelInit.replace('Encoder','GradMaskModel'))
-    #gradModel.load_weights(fileAEModelInit.replace('Encoder','GradModel'))
+    gradModel,gradMaskModel =  define_GradModel(shape,flagGradModel,wl2)
+    gradMaskModel.load_weights(fileModels[0].replace('Encoder','GradMaskModel'))
+    gradModel.load_weights(fileModels[0].replace('Encoder','GradModel'))
 
     global_model_Grad,global_model_Grad_Masked = define_GradDINConvAE(nProjInit,nGradInit,\
-                                                  model_AE,shape,gradModel,gradMaskModel,flagGradModel)
+                                                  model_AE,shape,gradModel,gradMaskModel,flagGradModel,\
+                                                  flagUseMaskinEncoder,size_tw,include_covariates,N_cov)
     if flagTrOuputWOMissingData == 1:
         global_model_Grad.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=lrInit))
     else:
         global_model_Grad_Masked.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=lrInit))
 
-    return global_model_Grad, global_model_Grad_Masked
+    return gradModel, gradMaskModel, global_model_Grad, global_model_Grad_Masked

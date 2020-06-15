@@ -42,11 +42,12 @@ if __name__ == '__main__':
     flag_MultiScaleAEModel      = 0     # see flagProcess2_7: work on HR(0), LR(1), or HR+LR(2)
     flagOptimMethod             = "FP"  # FP : iterated projections, GB : Gradient descent  
     flagGradModel   		= 0     # 0: F(Grad,Mask), 1: F==(Grad,Grad(t-1),Mask), 2: LSTM(Grad,Mask)
+    load_Model                  = False # use a pre-trained model or not
     sigNoise        		= 1e-1
     flagUseMaskinEncoder 	= 0
     flagTrOuputWOMissingData    = 1
     stdMask              	= 0.
-    flagDataWindowing 		= 2  # 2 for SSH case-study
+    flagDataWindowing 		= 2     # 2 for SSH case-study
     dropout           		= 0.0
     wl2               		= 0.0000
     batch_size        		= 4
@@ -61,14 +62,15 @@ if __name__ == '__main__':
         suf2 = "wmissing"
     else:
         suf2 = "wwmissing"
-    suf3 = ifelse(flagOptimMethod==0,"FP","GB")
+    suf3 = flagOptimMethod
     suf4 = ifelse(include_covariates==True,"w"+'-'.join(lid_cov),"wocov")
-    dirSAVE = '/gpfsscratch/rech/yrf/uba22to/DINAE_keras/OSE/'+domain+'/resIA_nadir_nadlag_'+lag+"_obs/"+suf3+'_'+suf1+'_'+suf2+'_'+suf4+'/'
+    suf5 = ifelse(load_Model==True,"wotrain","wtrain")
+    dirSAVE = '/gpfsscratch/rech/yrf/uba22to/DINAE_keras/OSE/'+domain+'/resIA_nadir_nadlag_'+lag+"_obs/"+suf3+'_'+suf1+'_'+suf2+'_'+suf4+'_'+suf5+'/'
     if not os.path.exists(dirSAVE):
         mk_dir_recursive(dirSAVE)
-    else:
-        shutil.rmtree(dirSAVE)
-        mk_dir_recursive(dirSAVE)
+    #else:
+    #    shutil.rmtree(dirSAVE)
+    #    mk_dir_recursive(dirSAVE)
 
     # push all global parameters in a list
     def createGlobParams(params):
@@ -79,7 +81,7 @@ if __name__ == '__main__':
     'flagloadOIData','size_tw','Wsquare',\
     'Nsquare','DimAE','flagAEType','flagLoadModel',\
     'flagOptimMethod','flagGradModel','sigNoise',\
-    'flagUseMaskinEncoder','stdMask',\
+    'load_Model','flagUseMaskinEncoder','stdMask',\
     'flagDataWindowing','dropout','wl2','batch_size',\
     'NbEpoc','Niter','flag_MultiScaleAEModel',\
     'dirSAVE','suf1','suf2','suf3','suf4']
@@ -98,8 +100,10 @@ if __name__ == '__main__':
     #5) *** Train ConvAE ***      
     if flagOptimMethod == "FP":
         FP_OSE(globParams,genFilename,meanTt,stdTt,\
-                 x_test,x_test_missing,mask_test,gt_test,lday_test,x_train_OI,x_test_OI,encoder,decoder,model_AE,False,DIMCAE)
+                 x_test,x_test_missing,mask_test,gt_test,lday_test,x_train_OI,x_test_OI,\
+                 encoder,decoder,model_AE,DIMCAE)
     if flagOptimMethod == "GB":
         GB_OSE(globParams,genFilename,meanTt,stdTt,\
-                 x_test,x_test_missing,mask_test,gt_test,lday_test,x_train_OI,x_test_OI,encoder,decoder,model_AE,False,DIMCAE)
+                 x_test,x_test_missing,mask_test,gt_test,lday_test,x_train_OI,x_test_OI,\
+                 encoder,decoder,model_AE,DIMCAE)
 

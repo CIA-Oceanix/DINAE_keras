@@ -5,14 +5,12 @@ from .load_Models_FP                 import load_Models_FP
 from .mods_DIN.eval_Performance      import eval_AEPerformance
 from .mods_DIN.eval_Performance      import eval_InterpPerformance
 from .mods_DIN.def_DINConvAE         import define_DINConvAE
-from .mods_DIN.def_GradModel         import define_GradModel
-from .mods_DIN.def_GradDINConvAE     import define_GradDINConvAE
 from .mods_DIN.plot_Figs             import plot_Figs_Tt
 from .mods_DIN.save_Models           import save_Models
 
 def FP_OSE(dict_global_Params,genFilename,\
                         meanTt,stdTt,x_test,x_test_missing,mask_test,gt_test,lday_test,x_train_OI,x_test_OI,\
-                        encoder,decoder,model_AE,load_Model,DimCAE):
+                        encoder,decoder,model_AE,DimCAE):
 
     # import Global Parameters
     for key,val in dict_global_Params.items():
