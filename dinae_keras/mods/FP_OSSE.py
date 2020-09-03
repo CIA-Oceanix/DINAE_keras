@@ -84,8 +84,8 @@ def FP_OSSE(dict_global_Params,genFilename,x_train,x_train_missing,mask_train,gt
                 #global_model_FP.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
                 global_model_FP.compile(loss=keras_custom_loss_function(size_tw),optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
             else:
-                global_model_FP_Masked.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
-                #global_model_FP_Masked.compile(loss=keras_custom_loss_function(size_tw),optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
+                #global_model_FP_Masked.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
+                global_model_FP_Masked.compile(loss=['mean_squared_error',keras_custom_loss_function2(size_tw)],loss_weights=[1.0,1e-10],optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
             if comptUpdate < len(NbProjection)-1:
                 comptUpdate += 1
         
@@ -97,7 +97,7 @@ def FP_OSSE(dict_global_Params,genFilename,x_train,x_train_missing,mask_train,gt
                   verbose = 1, 
                   validation_split=val_split)
         else:
-            history = global_model_FP_Masked.fit([x_train_init,mask_train],[np.zeros((x_train_init.shape[0],1))],
+            history = global_model_FP_Masked.fit([x_train_init,mask_train],[np.zeros((x_train_init.shape[0],1)),gt_train],
                   batch_size=batch_size,
                   epochs = NbEpoc,
                   verbose = 1, 
@@ -207,6 +207,7 @@ def FP_OSSE(dict_global_Params,genFilename,x_train,x_train_missing,mask_train,gt
  
         idT = int(np.floor(x_test.shape[3]/2))
         saved_path = dirSAVE+'/saved_path_%03d'%(iter)+'_FP_'+suf1+'_'+suf2+'.pickle'
+        saved_path_Tr = dirSAVE+'/saved_path_%03d'%(iter)+'_FP_'+suf1+'_'+suf2+'_train.pickle'
         if flagloadOIData == 1:
             # generate some plots
             plot_Figs(dirSAVE,domain,genFilename,genSuffixModel,\
@@ -217,7 +218,11 @@ def FP_OSSE(dict_global_Params,genFilename,x_train,x_train_missing,mask_train,gt
             # Save DINAE result         
             with open(saved_path, 'wb') as handle:
                 pickle.dump([((gt_test*stdTr)+meanTr+x_test_OI)[:,:,:,idT],((x_test_missing*stdTr)+meanTr+x_test_OI)[:,:,:,idT],\
-                         ((x_test_pred*stdTr)+meanTr+x_test_OI)[:,:,:,idT],((rec_AE_Tt*stdTr)+meanTr+x_test_OI)[:,:,:,idT]], handle)
+                         ((x_test_pred*stdTr)+meanTr+x_test_OI)[:,:,:,idT],((rec_AE_Tt*stdTr)+meanTr+x_test_OI)[:,:,:,idT],x_test_OI[:,:,:,idT]], handle)
+            with open(saved_path_Tr, 'wb') as handle:
+                pickle.dump([((gt_train*stdTr)+meanTr+x_train_OI)[:,:,:,idT],((x_train_missing*stdTr)+meanTr+x_train_OI)[:,:,:,idT],\
+                         ((x_train_pred*stdTr)+meanTr+x_train_OI)[:,:,:,idT],((rec_AE_Tr*stdTr)+meanTr+x_train_OI)[:,:,:,idT],x_train_OI[:,:,:,idT]], handle)
+    
 
         else:
             # generate some plots
@@ -229,7 +234,10 @@ def FP_OSSE(dict_global_Params,genFilename,x_train,x_train_missing,mask_train,gt
             # Save DINAE result         
             with open(saved_path, 'wb') as handle:
                 pickle.dump([((gt_test*stdTr)+meanTr)[:,:,:,idT],((x_test_missing*stdTr)+meanTr)[:,:,:,idT],\
-                         ((x_test_pred*stdTr)+meanTr)[:,:,:,idT],((rec_AE_Tt*stdTr)+meanTr)[:,:,:,idT]], handle)
+                         ((x_test_pred*stdTr)+meanTr)[:,:,:,idT],((rec_AE_Tt*stdTr)+meanTr)[:,:,:,idT], x_test_OI[:,:,:,idT]], handle)
+            with open(saved_path_Tr, 'wb') as handle:
+                pickle.dump([((gt_train*stdTr)+meanTr)[:,:,:,idT],((x_train_missing*stdTr)+meanTr)[:,:,:,idT],\
+                         ((x_train_pred*stdTr)+meanTr)[:,:,:,idT],((rec_AE_Tr*stdTr)+meanTr)[:,:,:,idT], x_train_OI[:,:,:,idT]], handle)
 
         # reset variables with additional covariates
         if include_covariates == True:

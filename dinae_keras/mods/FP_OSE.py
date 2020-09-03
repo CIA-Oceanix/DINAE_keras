@@ -22,14 +22,14 @@ def FP_OSE(dict_global_Params,genFilename,\
         ## Load models
         if domain=="GULFSTREAM":
             weights_Encoder="/gpfsscratch/rech/yrf/uba22to/DINAE/GULFSTREAM"+\
-                            "/resIA_nadir_nadlag_5_obs/FP_GENN_wwmissing_wOI/"+\
+                            "/resIA_nadir_nadlag_"+lag+"_obs/FP_GENN_wwmissing_wOI/"+\
                             "modelNATL60_SSH_275_200_200_dW000WFilter011_NFilter200_"+\
-                            "RU010_LR004woSR_Alpha100_AE07D200N03W04_Nproj05_Encoder_iter019.mod"
+                            "RU010_LR004woSR_Alpha100_AE02D200N03W04_Nproj05_Encoder_iter019.mod"
         elif domain=="OSMOSIS":
             weights_Encoder="/gpfsscratch/rech/yrf/uba22to/DINAE/OSMOSIS"+\
-                            "/resIA_nadir_nadlag_5_obs/FP_GENN_wwmissing_wOI/"+\
-                            "modelNATL60_SSH_275_200_200_dW000WFilter011_NFilter200_"+\
-                            "RU010_LR004woSR_Alpha100_AE07D200N03W04_Nproj05_Encoder_iter019.mod"
+                            "/resIA_nadir_nadlag_"+lag+"_obs/FP_GENN_wwmissing_wOI/"+\
+                            "modelNATL60_SSH_275_200_160_dW000WFilter011_NFilter200_"+\
+                            "RU010_LR004woSR_Alpha100_AE02D200N03W04_Nproj05_Encoder_iter019.mod"
         weights_Decoder=weights_Encoder.replace('Encoder','Decoder')
         global_model_FP, global_model_FP_Masked = load_Models_FP(dict_global_Params,\
                                                   genFilename, x_test.shape,[weights_Encoder,weights_Decoder],\
@@ -50,12 +50,13 @@ def FP_OSE(dict_global_Params,genFilename,\
                 global_model_FP,global_model_FP_Masked = define_DINConvAE(NbProjection[comptUpdate],model_AE,x_test.shape,\
                                                                           flag_MultiScaleAEModel,flagUseMaskinEncoder,\
                                                                           size_tw,include_covariates,N_cov)
-                global_model_FP_Masked.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
-                if comptUpdate < len(NbProjection)-1:
-                    comptUpdate += 1
+                global_model_FP_Masked.compile(loss=['mean_squared_error',keras_custom_loss_function2(size_tw)],loss_weights=[1.,1e-3],optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
+            if comptUpdate < len(NbProjection)-1:
+                comptUpdate += 1
 
             # FP-based iteration            
-            history = global_model_FP_Masked.fit([x_test_init,mask_test],[np.zeros((x_test_init.shape[0],1))],
+            history = global_model_FP_Masked.fit([x_test_init,mask_test],\
+                                                    [np.zeros((x_test_init.shape[0],1)),gt_test],
                                                     batch_size=batch_size,
                                                     epochs = NbEpoc,
                                                     verbose = 1,

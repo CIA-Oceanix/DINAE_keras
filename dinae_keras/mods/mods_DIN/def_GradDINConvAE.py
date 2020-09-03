@@ -58,39 +58,41 @@ def define_GradDINConvAE(NiterProjection,NiterGrad,model_AE,shape,gradModel,grad
     ## gradient descent
     for kk in range(0,NiterGrad):
         x_proj   = model_AE([x,mask])
-        dx       = keras.layers.Subtract()([x,x_proj])
-      
+        dx       = keras.layers.Subtract()([slice_layer(index)(x),x_proj])
+
         ## grad mask (dmask)
-        dmask    = keras.layers.Concatenate(axis=-1)([dx,mask_])
+        dmask    = keras.layers.Concatenate(axis=-1)([dx,slice_layer(index)(mask_)])
         dmask    = gradMaskModel(dmask)
-      
+
         ## grad update (gx)
         # ResNet
         if flagGradModel == 0:
-            gx    = keras.layers.Concatenate(axis=-1)([dx,mask_])
+            gx    = keras.layers.Concatenate(axis=-1)([dx,slice_layer(index)(mask_)])
             gx    = gradModel(gx)
         # ResNet with one-step memory
         elif flagGradModel == 1:
             if kk == 0:
-                gx = keras.layers.Lambda(lambda x:0.*x)(dx)              
-            gx    = keras.layers.Concatenate(axis=-1)([mask_,gx])                  
+                gx = keras.layers.Lambda(lambda x:0.*x)(dx)
+            gx    = keras.layers.Concatenate(axis=-1)([slice_layer(index)(mask_),gx])
             gx    = keras.layers.Concatenate(axis=-1)([dx,gx])
             gx    = gradModel(gx)
         # LSTM
         elif flagGradModel == 2:
-            gx    = keras.layers.Concatenate(axis=-1)([dx,mask_])
+            gx    = keras.layers.Concatenate(axis=-1)([dx,slice_layer(index)(mask_)])
             gx    = gradModel(gx)
 
         ## update
 
         dx    = keras.layers.Multiply()([gx,dmask])
-        xnew  = keras.layers.Add()([x,dx])
-        xnew  = keras.layers.Multiply()([xnew,mask_])      
+        xnew  = keras.layers.Add()([slice_layer(index)(x),dx])
+        xnew  = keras.layers.Multiply()([xnew,slice_layer(index)(mask_)])
 
         ## update with masking
         x        = keras.layers.Multiply()([x,mask])
-        x        = keras.layers.Add()([x,xnew])
-              
+        x        = keras.layers.Add()([slice_layer(index)(x),xnew])
+        if include_covariates==True:
+            x = assign_sliced_layer(size_tw,N_cov,x)(x_input)
+
     x_proj = model_AE([x,mask])
     global_model_Grad  = keras.models.Model([x_input,mask],[x_proj])
 
@@ -105,20 +107,20 @@ def define_GradDINConvAE(NiterProjection,NiterGrad,model_AE,shape,gradModel,grad
         spatialAvLayer = keras.layers.Conv3D(1,(WAvFilter,WAvFilter,WAvFilter),weights=[avFilter],\
                             padding='same',activation='linear',use_bias=False,name='SpatialAverage')
         spatialAvLayer.trainable = False
-        maskg = keras.layers.Lambda(lambda x: K.permute_dimensions(x,(0,3,1,2)))(maskg) 
+        maskg = keras.layers.Lambda(lambda x: K.permute_dimensions(x,(0,3,1,2)))(maskg)
         maskg  = keras.layers.Reshape((shape[3],shape[1],shape[2],1))(maskg)
         for nn in range(0,NIterAvFilter):
-            maskg  = spatialAvLayer(maskg) 
-        maskg = keras.layers.Lambda(lambda x: K.permute_dimensions(x,(0,2,3,1,4)))(maskg) 
+            maskg  = spatialAvLayer(maskg)
+        maskg = keras.layers.Lambda(lambda x: K.permute_dimensions(x,(0,2,3,1,4)))(maskg)
         maskg = keras.layers.Reshape((shape[1],shape[2],shape[3]))(maskg)
-        maskg = keras.layers.Lambda(lambda x: thresholding(x,thrNoise))(maskg)    
+        maskg = keras.layers.Lambda(lambda x: thresholding(x,thrNoise))(maskg)
         maskg  = keras.layers.Multiply()([mask,maskg])
-        maskg  = keras.layers.Subtract()([mask,maskg])       
+        maskg  = keras.layers.Subtract()([mask,maskg])
     else:
         maskg = keras.layers.Lambda(lambda x: 1.*x)(mask)
 
     x_proj = global_model_Grad([x_input,maskg])
-  
+
     # AE error with x_proj
     err1 = error(x_proj,x_input,mask,size_tw,shape,1,N_cov)
     # compute error (x_proj-x_input)**2 with full-1 mask
@@ -141,11 +143,11 @@ def define_GradDINConvAE(NiterProjection,NiterGrad,model_AE,shape,gradModel,grad
     err    = keras.layers.Add()([err,err3])
 
     # Models and print summary
-    global_model_Grad_Masked  = keras.models.Model([x_input,mask],err)
+    global_model_Grad_Masked  = keras.models.Model([x_input,mask],[err,x_proj])
     gradModel.summary()
     gradMaskModel.summary()
     global_model_Grad.summary()
     global_model_Grad_Masked.summary()
-  
+
     return global_model_Grad,global_model_Grad_Masked
 

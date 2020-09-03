@@ -13,7 +13,7 @@ def mk_dir_recursive(dir_path):
         os.mkdir(new_path)
 
 def Gradient(img, order):
-    """ calcuate x, y gradient and magnitude """ 
+    """ calculate x, y gradient and magnitude """ 
     sobelx = cv2.Sobel(img,cv2.CV_64F,1,0,ksize=3)
     sobelx = sobelx/8.0
     sobely = cv2.Sobel(img,cv2.CV_64F,0,1,ksize=3)
@@ -25,6 +25,16 @@ def Gradient(img, order):
         return sobely
     else:
         return sobel_norm
+
+def insert_Sobel(size_tw,dir="x"):
+    kernel_weights=np.zeros((3,3,size_tw,size_tw))
+    if dir=="x":
+        sobel=np.array([[-1,0,1],[-2,0,2],[-1,0,1]]).T
+    if dir=="y":
+        sobel=np.array([[-1,-2,-1],[0,0,0],[1,2,1]]).T
+    for i in range(size_tw):
+        kernel_weights[:,:,i,i]=sobel
+    return kernel_weights
 
 def keras_custom_loss_function(size_tw):
     def insert_Sobel(size_tw,dir="x"):
@@ -51,6 +61,29 @@ def keras_custom_loss_function(size_tw):
         mae_grad = tf.keras.losses.mean_absolute_error(Grad_true, Grad_pred)
         alpha= 0.5
         loss = ((1.-alpha)*mae) + (alpha*mae_grad)
+        return loss
+    return lossFunction
+
+# New loss function for unsupervised setting:
+# L = MAE + ||Grad||^2
+def keras_custom_loss_function2(size_tw):
+    def insert_Sobel(size_tw,dir="x"):
+        kernel_weights=np.zeros((3,3,size_tw,size_tw))
+        if dir=="x":
+            sobel=np.array([[-1,0,1],[-2,0,2],[-1,0,1]]).T
+        if dir=="y":
+            sobel=np.array([[-1,-2,-1],[0,0,0],[1,2,1]]).T
+        for i in range(size_tw):
+            kernel_weights[:,:,i,i]=sobel
+        return kernel_weights
+    def lossFunction(y_true,y_pred):
+        filter_gx  = K.constant(insert_Sobel(size_tw,"x"))
+        filter_gy  = K.constant(insert_Sobel(size_tw,"y"))
+        Gx_pred = K.conv2d(y_pred, filter_gx, padding="same")
+        Gy_pred = K.conv2d(y_pred, filter_gy, padding="same")
+        Grad_pred = K.sqrt(keras.layers.Add()([keras.layers.Multiply()([Gx_pred,Gx_pred]),\
+                                       keras.layers.Multiply()([Gy_pred,Gy_pred])]))
+        loss = K.mean(keras.layers.Multiply()([Grad_pred,Grad_pred]))
         return loss
     return lossFunction
 

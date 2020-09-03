@@ -36,31 +36,31 @@ def GB_OSE(dict_global_Params,genFilename,\
             load_Models_GB(dict_global_Params, genFilename, x_test.shape,fileModels,\
                        encoder,decoder,model_AE,[5,2,1e-3])
     else:
+        gradModel,gradMaskModel = define_GradModel(model_AE,x_test.shape,flagGradModel,wl2)
         ## Train models
         NbProjection   = [5,5,5,5]
         NbGradIter     = [0,1,2,5,5,8,12,12]
-        lrUpdate   = [1e-4,1e-5,1e-6,1e-7]
+        lrUpdate       = [1e-4,1e-5,1e-6,1e-7]
         IterUpdate     = [0,3,10,15,20,25,30,35,40]
         val_split      = 0.1
         comptUpdate    = 0
-        for iter in range(iterInit,Niter):
+        for iter in range(0,Niter):
             if iter == IterUpdate[comptUpdate]:
-                if (iter > IterTrainAE) & (flagLoadModel == 1):
-                    print("..... Make trainable AE parameters")
-                    for layer in encoder.layers:
-                        layer.trainable = True
-                    for layer in decoder.layers:
-                        layer.trainable = True
-
+                print("..... Make trainable AE parameters")
+                for layer in encoder.layers:
+                    layer.trainable = True
+                for layer in decoder.layers:
+                    layer.trainable = True
                 NBProjCurrent = NbProjection[comptUpdate]
                 NBGradCurrent = NbGradIter[comptUpdate]
                 print("..... Update/initialize number of projections/Graditer in GradConvAE model # %d/%d"%(NbProjection[comptUpdate],NbGradIter[comptUpdate]))
-                global_model_Grad,global_model_Grad_Masked = define_GradDINConvAE(NbProjection[comptUpdate],NbGradIter[comptUpdate],model_AE,x_train.shape,gradModel,gradMaskModel,flagGradModel,flagUseMaskinEncoder,size_tw,include_covariates,N_cov)
+                global_model_Grad,global_model_Grad_Masked = define_GradDINConvAE(NbProjection[comptUpdate],NbGradIter[comptUpdate],model_AE,x_test.shape,gradModel,gradMaskModel,flagGradModel,flagUseMaskinEncoder,size_tw,include_covariates,N_cov)
                 global_model_Grad_Masked.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
+                #global_model_Grad_Masked.compile(loss=['mean_squared_error',keras_custom_loss_function2(size_tw)],loss_weights=[1.0,0.5],optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
             if comptUpdate < len(NbProjection)-1:
                 comptUpdate += 1
 
-            history = global_model_Grad_Masked.fit([x_test_init,mask_test],[np.zeros((x_test_init.shape[0],1))],
+            history = global_model_Grad_Masked.fit([x_test_init,mask_test],[np.zeros((x_test_init.shape[0],1)),gt_test],
                   batch_size=batch_size,
                   epochs = NbEpoc,
                   verbose = 1,
@@ -78,7 +78,7 @@ def GB_OSE(dict_global_Params,genFilename,\
 
     # trained AE applied to gap-free data
     if flagUseMaskinEncoder == 1:
-        rec_AE_Tt     = model_AE.predict([x_test,np.zeros((mask_train.shape))])
+        rec_AE_Tt     = model_AE.predict([x_test,np.zeros((mask_test.shape))])
     else:
         rec_AE_Tt     = model_AE.predict([x_test,np.ones((mask_test.shape))])
 

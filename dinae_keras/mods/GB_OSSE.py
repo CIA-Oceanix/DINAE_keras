@@ -47,7 +47,10 @@ def GB_OSSE(dict_global_Params,genFilename,x_train,x_train_missing,mask_train,gt
     NbProjection   = [5,5,5,5,5,5,5,5]
     NbGradIter     = [0,1,2,5,5,8,12,12]
     IterUpdate     = [0,3,10,15,20,30,35,40]
-    lrUpdate       = [1e-3,1e-5,1e-4,1e-5,1e-5,1e-5,1e-6,1e-5,1e-6]
+    if flagTrOuputWOMissingData==0:
+        lrUpdate   = [1e-4,1e-5,1e-6,1e-7]
+    else:
+        lrUpdate   = [1e-3,1e-4,1e-5,1e-6]
     val_split      = 0.1
     
     iterInit = 0
@@ -65,7 +68,8 @@ def GB_OSSE(dict_global_Params,genFilename,x_train,x_train_missing,mask_train,gt
         load_Models_GB(dict_global_Params, genFilename, x_train.shape, fileAEModelInit,\
                        encoder,decoder,model_AE,[2,2,1e-3])
     else:
-        gradModel,gradMaskModel = define_GradModel(model_AE,x_train.shape,flagGradModel,wl2)
+        shape = (x_train.shape[0],x_train.shape[1],x_train.shape[2],int(x_train.shape[3]/(N_cov+1)))
+        gradModel,gradMaskModel = define_GradModel(model_AE,shape,flagGradModel,wl2)
 
     # ******************** #
     # Start Learning model #
@@ -86,11 +90,11 @@ def GB_OSSE(dict_global_Params,genFilename,x_train,x_train_missing,mask_train,gt
             print("..... Update/initialize number of projections/Graditer in GradConvAE model # %d/%d"%(NbProjection[comptUpdate],NbGradIter[comptUpdate]))
             global_model_Grad,global_model_Grad_Masked = define_GradDINConvAE(NbProjection[comptUpdate],NbGradIter[comptUpdate],model_AE,x_train.shape,gradModel,gradMaskModel,flagGradModel,flagUseMaskinEncoder,size_tw,include_covariates,N_cov)
             if flagTrOuputWOMissingData == 1:
-                global_model_Grad.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
-                #global_model_Grad.compile(loss=keras_custom_loss_function(size_tw),optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
+                #global_model_Grad.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
+                global_model_Grad.compile(loss=keras_custom_loss_function(size_tw),optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
             else:
                 global_model_Grad_Masked.compile(loss='mean_squared_error',optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
-                #global_model_Grad_Masked.compile(loss=keras_custom_loss_function(size_tw),optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
+                #global_model_Grad_Masked.compile(loss=['mean_squared_error',keras_custom_loss_function2(size_tw)],loss_weights=[1.0,0.5],optimizer=keras.optimizers.Adam(lr=lrUpdate[comptUpdate]))
         
         if comptUpdate < len(NbProjection)-1:
             comptUpdate += 1
@@ -103,7 +107,7 @@ def GB_OSSE(dict_global_Params,genFilename,x_train,x_train_missing,mask_train,gt
                   verbose = 1,
                   validation_split=val_split)
         else:
-            history = global_model_Grad_Masked.fit([x_train_init,mask_train],[np.zeros((x_train_init.shape[0],1))],
+            history = global_model_Grad_Masked.fit([x_train_init,mask_train],[np.zeros((x_train_init.shape[0],1)),gt_train],
                   batch_size=batch_size,
                   epochs = NbEpoc,
                   verbose = 1,

@@ -53,18 +53,23 @@ if __name__ == '__main__':
         lname_cov                   = ["ssh_mod"]
         lid_cov                     = ["OI"]
         N_cov                        = len(lid_cov)
+    else:
+        lfile_cov               = [""]
+        lname_cov               = [""]
+        lid_cov                 = [""]
+        N_cov                   = 0
     size_tw                     = 11    # Length of the 4th dimension          
     Wsquare     		= 4     # half-width of holes
     Nsquare     		= 3     # number of holes
-    DimAE       		= 200   # Dimension of the latent space
+    DimAE       		= 40   # Dimension of the latent space
     flagAEType  		= 2     # model type, ConvAE or GE-NN
     flagLoadModel               = 0     # load pre-defined AE model or not
     flag_MultiScaleAEModel      = 0     # see flagProcess2_7: work on HR(0), LR(1), or HR+LR(2)
-    flagOptimMethod 		= "GB"  # FP : iterated projections, GB : Gradient descent  
+    flagOptimMethod 		= "FP"  # FP : iterated projections, GB : Gradient descent  
     flagGradModel   		= 1     # 0: F(Grad,Mask), 1: F==(Grad,Grad(t-1),Mask), 2: LSTM(Grad,Mask)
     sigNoise        		= 1e-1
     flagUseMaskinEncoder 	= 0
-    flagTrOuputWOMissingData    = 1
+    flagTrOuputWOMissingData    = 0
     stdMask              	= 0.
     flagDataWindowing 		= 2  # 2 for SSH case-study
     dropout           		= 0.0
@@ -74,14 +79,19 @@ if __name__ == '__main__':
     Niter = ifelse(flagTrWMissingData==1,20,20)
 
     # create the output directory
-    suf1 = ifelse(flagAEType==6,"ConvAE","GENN")
+    if flagAEType==1:
+        suf1 = "ConvAE"
+    if flagAEType==2:
+        suf1 = "GENN"
+    if flagAEType==3:
+        suf1 = "PINN"
     if flagTrWMissingData==0:
         suf2 = "womissing"
     elif flagTrWMissingData==1:
         suf2 = "wmissing"
     else:
         suf2 = "wwmissing"
-    suf3 = ifelse(flagOptimMethod==0,"FP","GB")
+    suf3 = flagOptimMethod
     suf4 = ifelse(include_covariates==True,"w"+'-'.join(lid_cov),"wocov")
     dirSAVE = ifelse(opt!='swot',\
               '/gpfsscratch/rech/yrf/uba22to/DINAE/'+domain+'/resIA_'+opt+'_nadlag_'+lag+"_"+type_obs+"/"+suf3+'_'+suf1+'_'+suf2+'_'+suf4+'/',\
@@ -113,6 +123,7 @@ if __name__ == '__main__':
 
     #3) *** Define AE architecture ***
     genFilename, encoder, decoder, model_AE, DIMCAE = define_Models(globParams,genFilename,x_train,mask_train)
+    exit()
 
     #4) *** Define classifier architecture for performance evaluation ***
     #classifier = flagProcess3(globParams,y_train)

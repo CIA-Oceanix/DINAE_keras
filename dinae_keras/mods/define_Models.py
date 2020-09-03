@@ -1,6 +1,7 @@
 from dinae_keras import *
 from .mods_NN.ConvAE import ConvAE 
 from .mods_NN.GENN   import GENN 
+from .mods_NN.PINN   import PINN
 
 def define_Models(dict_global_Params,genFilename,x,mask):
 
@@ -11,4 +12,6 @@ def define_Models(dict_global_Params,genFilename,x,mask):
       genFilename, encoder, decoder, model_AE, DimCAE = ConvAE(dict_global_Params,genFilename,x,mask)
     if flagAEType == 2: ## Energy function of the type ||x(p)-f(x(q, q<>p))||
       genFilename, encoder, decoder, model_AE, DimCAE = GENN(dict_global_Params,1,0,genFilename,x,mask)
+    if flagAEType == 3: ## AD model
+      genFilename, encoder, decoder, model_AE, DimCAE = PINN(dict_global_Params,genFilename,x,mask)
     return genFilename, encoder, decoder, model_AE, DimCAE

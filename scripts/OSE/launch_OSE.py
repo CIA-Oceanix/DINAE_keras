@@ -15,9 +15,13 @@ def ifelse(cond1,val1,val2):
         res = val2
     return res
 
+def str2bool(v):
+  return v.lower() in ("yes", "true", "t", "1")
+
 lag      = sys.argv[1]
 domain   = sys.argv[2]
-  
+lmod     = str2bool(sys.argv[3]) 
+
 # main code
 if __name__ == '__main__':
 
@@ -41,18 +45,18 @@ if __name__ == '__main__':
     flagLoadModel               = 0     # load pre-defined AE model or not
     flag_MultiScaleAEModel      = 0     # see flagProcess2_7: work on HR(0), LR(1), or HR+LR(2)
     flagOptimMethod             = "FP"  # FP : iterated projections, GB : Gradient descent  
-    flagGradModel   		= 0     # 0: F(Grad,Mask), 1: F==(Grad,Grad(t-1),Mask), 2: LSTM(Grad,Mask)
-    load_Model                  = False # use a pre-trained model or not
+    flagGradModel   		= 2     # 0: F(Grad,Mask), 1: F==(Grad,Grad(t-1),Mask), 2: LSTM(Grad,Mask)
+    load_Model                  = lmod  # use a pre-trained model or not
     sigNoise        		= 1e-1
     flagUseMaskinEncoder 	= 0
-    flagTrOuputWOMissingData    = 1
+    flagTrOuputWOMissingData    = 0
     stdMask              	= 0.
     flagDataWindowing 		= 2     # 2 for SSH case-study
     dropout           		= 0.0
     wl2               		= 0.0000
     batch_size        		= 4
-    NbEpoc            		= 20
-    Niter = ifelse(flagTrWMissingData==1,20,20)
+    NbEpoc            		= 10
+    Niter                       = 5
 
     # create the output directory
     suf1 = ifelse(flagAEType==6,"ConvAE","GENN")
@@ -75,7 +79,7 @@ if __name__ == '__main__':
     # push all global parameters in a list
     def createGlobParams(params):
         return dict(((k, eval(k)) for k in params))
-    list_globParams=['domain','fileObs','fileOI',\
+    list_globParams=['domain','lag','fileObs','fileOI',\
     'include_covariates','N_cov','lfile_cov','lid_cov','lname_cov',\
     'flagTrOuputWOMissingData','flagTrWMissingData',\
     'flagloadOIData','size_tw','Wsquare',\

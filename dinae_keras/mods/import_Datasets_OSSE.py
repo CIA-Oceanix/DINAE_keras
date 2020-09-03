@@ -27,7 +27,7 @@ def import_Data_OSSE(dict_global_Params,type_obs):
         exec("globals()['"+key+"']=val")
 
     #*** Start reading the data ***#
-    thrMisData = 0.005
+    thrMisData = 0.000
     # list of test dates
     indN_Tt = np.concatenate([np.arange(60,80),np.arange(140,160),\
                              np.arange(220,240),np.arange(300,320)])

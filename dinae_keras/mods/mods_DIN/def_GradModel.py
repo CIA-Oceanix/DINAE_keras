@@ -29,7 +29,7 @@ def define_GradModel(model_AE,shape,flagGradModel,wl2):
     # ResNet with one-step memory
     elif flagGradModel == 1:
         print("...... Initialize Gradient Model: ResNet with one-step memory")
-        x_input  = keras.layers.Input((shape[1],shape[2],shape[3]*2))
+        x_input  = keras.layers.Input((shape[1],shape[2],shape[3]*3))
         x        = keras.layers.Conv2D(10,(3,3),activation='relu', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x_input)
         x        = keras.layers.Conv2D(5,(3,3),activation='linear', padding='same',use_bias=False,kernel_regularizer=keras.regularizers.l2(wl2))(x)
         for nn in range(0,10):

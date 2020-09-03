@@ -1,4 +1,5 @@
 from dinae_keras import *
+from ..tools import *
 
 def slice_layer(index):
     def func(x_input):
@@ -30,10 +31,30 @@ def error(x1,x2,mask,size_tw,shape,alpha,N_cov):
         err   = keras.layers.Multiply()([err,mask])
     err   = keras.layers.Multiply()([err,err])
     err   = keras.layers.Reshape((err.shape[-3],err.shape[-2],err.shape[-1],1))(err)
+    # normalize err
     err   = keras.layers.GlobalAveragePooling3D()(err)
     err   = keras.layers.Reshape((1,))(err)
     err   = keras.layers.Lambda(lambda x: alpha*x)(err)
     return err
+
+def regularize_Gradient(x_proj,size_tw):
+    filter_gx  = K.constant(insert_Sobel(size_tw,"x"))
+    filter_gy  = K.constant(insert_Sobel(size_tw,"y"))
+    def Gradient(tensors):
+        tensor = tensors[0]
+        filter = tensors[1]
+        return K.conv2d(tensor, filter, padding="same")
+    Gx_pred = keras.layers.Lambda(Gradient)([x_proj, filter_gx])
+    Gy_pred = keras.layers.Lambda(Gradient)([x_proj, filter_gy])
+    #Grad_pred = K.sqrt(keras.layers.Add()([keras.layers.Multiply()([Gx_pred,Gx_pred]),\
+    #                                    keras.layers.Multiply()([Gy_pred,Gy_pred])]))
+    Grad_pred = keras.layers.Add()([keras.layers.Multiply()([Gx_pred,Gx_pred]),\
+                                        keras.layers.Multiply()([Gy_pred,Gy_pred])])
+    reg_Gradient   = keras.layers.Reshape((Grad_pred.shape[-3],Grad_pred.shape[-2],Grad_pred.shape[-1],1))(Grad_pred)
+    reg_Gradient   = keras.layers.GlobalAveragePooling3D()(reg_Gradient)
+    reg_Gradient   = keras.layers.Reshape((1,))(reg_Gradient)
+    reg_Gradient   = keras.layers.Lambda(lambda x: 1*x)(reg_Gradient)
+    return reg_Gradient
 
 def define_DINConvAE(NiterProjection,model_AE,shape,\
                      flag_MultiScaleAEModel,flagUseMaskinEncoder,\
@@ -118,7 +139,8 @@ def define_DINConvAE(NiterProjection,model_AE,shape,\
     err    = keras.layers.Add()([err,err3])
 
     # return global model
-    global_model_FP_Masked  = keras.models.Model([x_input,mask],err)
+    global_model_FP_Masked  = keras.models.Model([x_input,mask],[err,x_proj])
+
     global_model_FP.summary()
     global_model_FP_Masked.summary()
   
