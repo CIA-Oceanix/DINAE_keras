@@ -2,9 +2,7 @@
 
 ## Introduction
 
-Associated preprints:
-- Fixed-point solver: https://arxiv.org/abs/1910.00556
-- Gradient-based solvers using automatic differentiation: https://arxiv.org/abs/2006.03653
+Associated preprints: https://arxiv.org/abs/1910.00556
 
 License: CECILL-C license
 
